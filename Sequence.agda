@@ -562,26 +562,36 @@ nonNegx∧x≄0⇒posx {x} nonx x≄0 = 0<x⇒posx (begin-strict
 nonNegx⇒nonNegx⁻¹ : ∀ {x} -> NonNegative x -> (x≄0 : x ≄0) -> NonNegative ((x ⁻¹) x≄0)
 nonNegx⇒nonNegx⁻¹ {x} nonx x≄0 = pos⇒nonNeg (posx⇒posx⁻¹ {x} x≄0 (nonNegx∧x≄0⇒posx {x} nonx x≄0))
 
+
 abstract
   xₙ≄0∧x₀≄0⇒xₙ⁻¹→x₀⁻¹ : ∀ {xs : ℕ -> ℝ} -> ∀ {x₀ : ℝ} -> xs ConvergesTo x₀ -> (xₙ≄0 : ∀ n -> xs n ≄0) -> (x₀≄0 : x₀ ≄0) ->
                         (λ n -> (xs n ⁻¹) (xₙ≄0 n)) ConvergesTo (x₀ ⁻¹) x₀≄0
   xₙ≄0∧x₀≄0⇒xₙ⁻¹→x₀⁻¹ {xs} {x₀} (con* xₙ→x₀) xₙ≄0 x₀≄0 = con* main
+    
     where
       open ≤-Reasoning
       main : ∀ k -> {k≢0 : k ≢0} -> ∃ λ N-1 -> ∀ n -> n ℕ.≥ suc N-1 ->
              ∣ (xs n ⁻¹) (xₙ≄0 n) - (x₀ ⁻¹) x₀≄0 ∣ ≤ ((+ 1 / k) {k≢0}) ⋆
       main (suc k-1) = ℕ.pred N , sub
+      
         where
+          arch : ∃ (λ n-1 → (mkℚᵘ (+ 1) n-1 ⋆ < (+ 1 / 2) ⋆ * ∣ x₀ ∣)) --had to add this
           arch = fast-archimedean-ℝ₂ {(+ 1 / 2) ⋆ * ∣ x₀ ∣} (posx,y⇒posx*y (posp⇒posp⋆ (+ 1 / 2) _) (x≄0⇒pos∣x∣ x₀≄0))
+          
+          r k : ℕ
           r = suc (proj₁ arch)
           k = suc k-1
+
+          m₀-getter : ∃ (λ N-1 → (n : ℕ) → n ℕ.≥ suc N-1 → ∣ xs n - x₀ ∣ < ((+ 1 / (2 ℕ.* (suc k-1))) ⋆ * (∣ x₀ ∣ * ∣ x₀ ∣))) --had to add this too
           m₀-getter = fast-ε-from-convergence (x₀ , con* xₙ→x₀) ((+ 1 / (2 ℕ.* k)) ⋆ * (∣ x₀ ∣ * ∣ x₀ ∣))
                       (posx,y⇒posx*y (posp⇒posp⋆ (+ 1 / (2 ℕ.* k)) _)
                       (posx,y⇒posx*y (x≄0⇒pos∣x∣ x₀≄0) (x≄0⇒pos∣x∣ x₀≄0)))
+          
+          m₀ n₀ N : ℕ
           m₀ = suc (proj₁ m₀-getter)
           n₀ = suc (proj₁ (xₙ→x₀ r))
           N = m₀ ℕ.⊔ n₀
-
+          
           {-
             [1]
             Incredible optimization note!
@@ -593,7 +603,7 @@ abstract
             Despite this issue being solved, the addition of all of the implicit arguments below is a notable optimization, and will
             thus be kept.
           -}
-          sub : ∀ n -> n ℕ.≥ N -> ∣ (xs n ⁻¹) (xₙ≄0 n) - (x₀ ⁻¹) x₀≄0 ∣ ≤ (+ 1 / k) ⋆
+          sub : ∀ n -> n ℕ.≥ N -> ∣ (xs n ⁻¹) (xₙ≄0 n) - (x₀ ⁻¹) x₀≄0 ∣ ≤ (+ 1 / suc k-1) ⋆
           sub n n≥N = begin
             ∣ xₙ⁻¹ - x₀⁻¹ ∣                          ≈⟨ ≃-trans {∣ xₙ⁻¹ - x₀⁻¹ ∣} {∣xₙ∣⁻¹ * ∣x₀∣⁻¹ * ∣ x₀ - xₙ ∣} {∣ x₀ - xₙ ∣ * (∣xₙ∣⁻¹ * ∣x₀∣⁻¹)}
                                                         part2 (*-comm (∣xₙ∣⁻¹ * ∣x₀∣⁻¹) ∣ x₀ - xₙ ∣) ⟩
@@ -626,16 +636,24 @@ abstract
                                                           ℤΚ (+ 1) :* ℤΚ (+ 2) :* k := ℤΚ (+ 1) :* (ℤΚ (+ 2) :* k :* ℤΚ (+ 1)))
                                                           refl (+ k))) ⟩
             (+ 1 / k) ⋆                                 ∎
-          
+           
+            
             where
+              --maybe the main problem was here; it hung until the types were added
+              xₙ xₙ⁻¹ x₀⁻¹ : ℝ
               xₙ = xs n
               xₙ⁻¹ = (xₙ ⁻¹) (xₙ≄0 n)
               x₀⁻¹ = (x₀ ⁻¹) x₀≄0
+
+              ∣xₙ∣≄0 : ∣ xₙ ∣ ≄0
               ∣xₙ∣≄0 = x≄0⇒∣x∣≄0 (xₙ≄0 n)
+              ∣x₀∣≄0 : ∣ x₀ ∣ ≄0
               ∣x₀∣≄0 = x≄0⇒∣x∣≄0 x₀≄0
+              
+              ∣xₙ∣⁻¹ ∣x₀∣⁻¹ : ℝ
               ∣xₙ∣⁻¹ = (∣ xₙ ∣ ⁻¹) ∣xₙ∣≄0
               ∣x₀∣⁻¹ = (∣ x₀ ∣ ⁻¹) ∣x₀∣≄0
-
+              
               2⁻¹∣x₀∣<∣xₙ∣ : (+ 1 / 2) ⋆ * ∣ x₀ ∣ < ∣ xₙ ∣
               2⁻¹∣x₀∣<∣xₙ∣ = begin-strict
                 (+ 1 / 2) ⋆ * ∣ x₀ ∣            ≈⟨ solve 1 (λ ∣x₀∣ ->
@@ -650,7 +668,7 @@ abstract
                                                    x₀ ⊖ (x₀ ⊖ xₙ) ⊜ xₙ)
                                                    ≃-refl xₙ x₀) ⟩
                 ∣ xₙ ∣                          ∎
-
+              
               part1 : xₙ⁻¹ - x₀⁻¹ ≃ xₙ⁻¹ * x₀⁻¹ * (x₀ - xₙ)
               part1 = ≃-symm (begin-equality
                 xₙ⁻¹ * x₀⁻¹ * (x₀ - xₙ)                 ≈⟨ *-distribˡ-+ (xₙ⁻¹ * x₀⁻¹) x₀ (- xₙ) ⟩
@@ -667,7 +685,7 @@ abstract
                                                            (+-congʳ xₙ⁻¹ (*-congˡ { - x₀⁻¹} (*-inverseˡ xₙ (xₙ≄0 n)))))
                                                            (+-congʳ xₙ⁻¹ (*-identityʳ (- x₀⁻¹))) ⟩
                 xₙ⁻¹ - x₀⁻¹                              ∎)
-
+              
               part2 : ∣ xₙ⁻¹ - x₀⁻¹ ∣ ≃ ∣xₙ∣⁻¹ * ∣x₀∣⁻¹ * ∣ x₀ - xₙ ∣
               part2 = begin-equality
                 ∣ xₙ⁻¹ - x₀⁻¹ ∣                   ≈⟨ ∣-∣-cong part1 ⟩
@@ -677,7 +695,7 @@ abstract
                                                     (∣x∣⁻¹≃∣x⁻¹∣ {xₙ} ∣xₙ∣≄0 (xₙ≄0 n))
                                                     (∣x∣⁻¹≃∣x⁻¹∣ {x₀} ∣x₀∣≄0 x₀≄0))) ⟩
                 ∣xₙ∣⁻¹ * ∣x₀∣⁻¹ * ∣ x₀ - xₙ ∣      ∎
-
+              
               part3 : ∣xₙ∣⁻¹ < 2ℚᵘ ⋆ * ∣x₀∣⁻¹
               part3 = let 2⁻¹≄0 = ∣↥p∣≢0⇒p⋆≄0 (+ 1 / 2) _
                                 ; 2⁻¹∣x₀∣≄0 = x≄0∧y≄0⇒x*y≄0 {(+ 1 / 2) ⋆} {∣ x₀ ∣} 2⁻¹≄0 ∣x₀∣≄0 in begin-strict
@@ -690,7 +708,7 @@ abstract
                     (((+ 1 / 2) ⋆) ⁻¹) 2⁻¹≄0 * ∣x₀∣⁻¹                ≈⟨ *-congʳ {∣x₀∣⁻¹} (⋆-distrib-⁻¹ (+ 1 / 2) 2⁻¹≄0) ⟩
                     2ℚᵘ ⋆ * ∣x₀∣⁻¹                                    ∎
 
-              part4 : ∣ x₀ - xₙ ∣ < (+ 1 / (2 ℕ.* k)) ⋆ * (∣ x₀ ∣ * ∣ x₀ ∣)
+              part4 : ∣ x₀ - xₙ ∣ < (+ 1 / (2 ℕ.* (suc k-1))) ⋆ * (∣ x₀ ∣ * ∣ x₀ ∣)
               part4 = begin-strict
                 ∣ x₀ - xₙ ∣                             ≈⟨ ∣x-y∣≃∣y-x∣ x₀ xₙ ⟩
                 ∣ xₙ - x₀ ∣                             <⟨ proj₂ m₀-getter n (ℕP.≤-trans (ℕP.m≤m⊔n m₀ n₀) n≥N) ⟩
@@ -2345,12 +2363,21 @@ Order Limit Theorem
 -}
 0≤xₙ⇒0≤limxₙ : {xs : ℕ → ℝ} → ((n : ℕ) → 0ℝ ≤ xs n) → (xₙ→x : xs isConvergent)  → 0ℝ ≤ lim xₙ→x
 0≤xₙ⇒0≤limxₙ {xs} 0≤xₙ xₙ→x = ≮⇒≥ λ x<0 → <-irrefl ≃-refl
-                              let x = lim xₙ→x; N-get = (fast-ε-from-convergence xₙ→x (- x) (0<x⇒posx (<-respˡ-≃ (≃-symm 0≃-0) (neg-mono-< x<0))))
-                                    ; N = suc (proj₁ N-get) in begin-strict
-  - x      ≤⟨ ≤-respˡ-≃ (+-identityˡ (- x)) (+-monoˡ-≤ (- x) (0≤xₙ N))  ⟩
-  xs N - x <⟨ ≤-<-trans x≤∣x∣ (proj₂ N-get N ℕP.≤-refl) ⟩
-  - x       ∎
-  where open ≤-Reasoning
+                              (begin-strict
+  - x                  ≤⟨ ≤-respˡ-≃ (+-identityˡ (- x)) (+-monoˡ-≤ (- x) (0≤xₙ N)) ⟩
+  xs (N {x<0}) - x     <⟨ ≤-<-trans x≤∣x∣ (proj₂ N-get N ℕP.≤-refl) ⟩
+  - x       ∎)
+  where
+    open ≤-Reasoning
+
+    x : ℝ
+    x = lim xₙ→x
+
+    N-get : {x<0 : x < 0ℝ} → ∃ (λ N-1 → (n : ℕ) → n ℕ.≥ suc N-1 → ∣ xs n - x ∣ < - x)
+    N-get {x<0} = fast-ε-from-convergence xₙ→x (- x) (0<x⇒posx (<-respˡ-≃ (≃-symm 0≃-0) (neg-mono-< x<0)))
+
+    N : {x<0 : x < 0ℝ} → ℕ
+    N {x<0} = suc (proj₁ (N-get {x<0}))
 
 xₙ≤yₙ⇒limxₙ≤limyₙ : {xs ys : ℕ → ℝ} → ((n : ℕ) → xs n ≤ ys n) → (xₙ→x : xs isConvergent) (yₙ→y : ys isConvergent) → lim xₙ→x ≤ lim yₙ→y
 xₙ≤yₙ⇒limxₙ≤limyₙ {xs} {ys} xₙ≤yₙ xₙ→x yₙ→y = 0≤y-x⇒x≤y (0≤xₙ⇒0≤limxₙ {λ n → ys n - xs n} (λ n → x≤y⇒0≤y-x (xₙ≤yₙ n))
@@ -2457,3 +2484,4 @@ abstract
                             (k : ℕ) {k≢0 : k ≢0} → ∃ λ Nₖ-1 → (n : ℕ) → n ℕ.≥ suc Nₖ-1 →
                             ∣ xs n - lim xₙ→x ∣ ≤ ((+ 1 / k) {k≢0}) ⋆
   fast-convergence-getter = convergence-getter
+

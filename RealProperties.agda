@@ -1704,8 +1704,11 @@ module ℝ-Solver where
     }
 
   abstract
+    ⋆-distrib-+₂ : ∀ (p r : ℚᵘ) -> (p ℚ.+ r) ⋆ ≃ p ⋆ + r ⋆
     ⋆-distrib-+₂   = ⋆-distrib-+
+    ⋆-distrib-*₂ : ∀ p q -> (p ℚ.* q) ⋆ ≃ p ⋆ * q ⋆
     ⋆-distrib-*₂   = ⋆-distrib-*
+    ⋆-distrib-neg₂ : ∀ (p : ℚᵘ) -> (ℚ.- p) ⋆ ≃ - (p ⋆)
     ⋆-distrib-neg₂ = ⋆-distrib-neg
 
   getMorphism : _-Raw-AlmostCommutative⟶_ ℚP.+-*-rawRing (fromCommutativeRing +-*-commutativeRing (λ x -> nothing))
@@ -2571,4 +2574,5 @@ x≤z∧y≤z⇒x⊔y≤z {x} {y} {z} x≤z y≤z = lemma-2-8-2-onlyif lem
           seq z (2 ℕ.* m) ℚ.- seq y (2 ℕ.* m)       ≈⟨ ℚP.+-congʳ (seq z (2 ℕ.* m))
                                                        (ℚP.-‿cong (ℚP.≃-sym (ℚP.p≤q⇒p⊔q≃q x₂ₘ≤y₂ₘ))) ⟩
           seq z (2 ℕ.* m) ℚ.- seq (x ⊔ y) (2 ℕ.* m)  ∎
+
 
