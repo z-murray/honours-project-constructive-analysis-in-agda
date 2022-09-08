@@ -591,7 +591,7 @@ abstract
           m₀ = suc (proj₁ m₀-getter)
           n₀ = suc (proj₁ (xₙ→x₀ r))
           N = m₀ ℕ.⊔ n₀
-          
+
           {-
             [1]
             Incredible optimization note!
@@ -653,7 +653,7 @@ abstract
               ∣xₙ∣⁻¹ ∣x₀∣⁻¹ : ℝ
               ∣xₙ∣⁻¹ = (∣ xₙ ∣ ⁻¹) ∣xₙ∣≄0
               ∣x₀∣⁻¹ = (∣ x₀ ∣ ⁻¹) ∣x₀∣≄0
-              
+
               2⁻¹∣x₀∣<∣xₙ∣ : (+ 1 / 2) ⋆ * ∣ x₀ ∣ < ∣ xₙ ∣
               2⁻¹∣x₀∣<∣xₙ∣ = begin-strict
                 (+ 1 / 2) ⋆ * ∣ x₀ ∣            ≈⟨ solve 1 (λ ∣x₀∣ ->
@@ -668,7 +668,7 @@ abstract
                                                    x₀ ⊖ (x₀ ⊖ xₙ) ⊜ xₙ)
                                                    ≃-refl xₙ x₀) ⟩
                 ∣ xₙ ∣                          ∎
-              
+
               part1 : xₙ⁻¹ - x₀⁻¹ ≃ xₙ⁻¹ * x₀⁻¹ * (x₀ - xₙ)
               part1 = ≃-symm (begin-equality
                 xₙ⁻¹ * x₀⁻¹ * (x₀ - xₙ)                 ≈⟨ *-distribˡ-+ (xₙ⁻¹ * x₀⁻¹) x₀ (- xₙ) ⟩
@@ -685,7 +685,7 @@ abstract
                                                            (+-congʳ xₙ⁻¹ (*-congˡ { - x₀⁻¹} (*-inverseˡ xₙ (xₙ≄0 n)))))
                                                            (+-congʳ xₙ⁻¹ (*-identityʳ (- x₀⁻¹))) ⟩
                 xₙ⁻¹ - x₀⁻¹                              ∎)
-              
+
               part2 : ∣ xₙ⁻¹ - x₀⁻¹ ∣ ≃ ∣xₙ∣⁻¹ * ∣x₀∣⁻¹ * ∣ x₀ - xₙ ∣
               part2 = begin-equality
                 ∣ xₙ⁻¹ - x₀⁻¹ ∣                   ≈⟨ ∣-∣-cong part1 ⟩
@@ -695,7 +695,7 @@ abstract
                                                     (∣x∣⁻¹≃∣x⁻¹∣ {xₙ} ∣xₙ∣≄0 (xₙ≄0 n))
                                                     (∣x∣⁻¹≃∣x⁻¹∣ {x₀} ∣x₀∣≄0 x₀≄0))) ⟩
                 ∣xₙ∣⁻¹ * ∣x₀∣⁻¹ * ∣ x₀ - xₙ ∣      ∎
-              
+
               part3 : ∣xₙ∣⁻¹ < 2ℚᵘ ⋆ * ∣x₀∣⁻¹
               part3 = let 2⁻¹≄0 = ∣↥p∣≢0⇒p⋆≄0 (+ 1 / 2) _
                                 ; 2⁻¹∣x₀∣≄0 = x≄0∧y≄0⇒x*y≄0 {(+ 1 / 2) ⋆} {∣ x₀ ∣} 2⁻¹≄0 ∣x₀∣≄0 in begin-strict
@@ -1069,7 +1069,7 @@ then ∑xₙ converges.
 Proof:
   Let k∈ℕ. Then there is N₂∈ℕ such that 
                      ∣∑ᵢ₌ₙ₊₁ᵐ yᵢ∣ ≤ k⁻¹          (m > n ≥ N₂).
-Let N₂∈ℕ such that ∣xₙ∣ ≤ yₙ for n ≥ N₁. Define N = max{N₁, N₂} and let
+Let N₁∈ℕ such that ∣xₙ∣ ≤ yₙ for n ≥ N₁. Define N = max{N₁, N₂} and let
 m > n ≥ N. Then
                ∣∑ᵢ₌ₙ₊₁ᵐ xᵢ∣ ≤ ∑ᵢ₌ₙ₊₁ᵐ ∣xᵢ∣
                             ≤ ∑ᵢ₌ₙ₊₁ᵐ yᵢ  since m > n ≥ N₁
@@ -1173,6 +1173,7 @@ abstract
   fast-xₙ⊆yₙ∧yₙ→y⇒xₙ→y : {xs ys : ℕ → ℝ} → xs SubsequenceOf ys → (yₙ→y : ys isConvergent) → xs ConvergesTo lim yₙ→y
   fast-xₙ⊆yₙ∧yₙ→y⇒xₙ→y = xₙ⊆yₙ∧yₙ→y⇒xₙ→y
 
+--basically: if there is an ys such that ys does not converge to 0ℝ and xs is a subsequence of ys, then Σxs is divergent
 subsequence-divergence-test : ∀ {xs : ℕ -> ℝ} ->
                               (∃ λ (r : ℝ) -> ∃ λ (ys : ℕ -> ℝ) -> Positive r × ys SubsequenceOf xs × (∀ n -> ∣ ys n ∣ ≥ r)) ->
                               SeriesOf xs isDivergent
@@ -2484,4 +2485,3 @@ abstract
                             (k : ℕ) {k≢0 : k ≢0} → ∃ λ Nₖ-1 → (n : ℕ) → n ℕ.≥ suc Nₖ-1 →
                             ∣ xs n - lim xₙ→x ∣ ≤ ((+ 1 / k) {k≢0}) ⋆
   fast-convergence-getter = convergence-getter
-

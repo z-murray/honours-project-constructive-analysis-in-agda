@@ -519,6 +519,7 @@ Change to n instead of suc n-1
 
 
 -}
+
 _isTotallyBounded : Pred ℝ 0ℓ → Set
 P isTotallyBounded = (ε : ℝ) → ε > 0ℝ → ∃ λ (n-1 : ℕ) → ∃ λ (f : Fin (suc n-1) → 𝕊 P) →
                      (X : 𝕊 P) → ∃ λ (k : Σ ℕ λ m → m ℕ.< suc n-1) → ∣ proj₁ X - proj₁ (f (fromℕ< (proj₂ k))) ∣ < ε
