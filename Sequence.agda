@@ -1519,6 +1519,7 @@ abstract
   fast-geometric-series-isConvergent : ∀ {r} -> ∣ r ∣ < 1ℝ -> SeriesOf (λ i -> pow r i) isConvergent
   fast-geometric-series-isConvergent {r} = geometric-series-isConvergent {r}
 
+--maybe move to RealProperties? or should it remain here (it's about sequences, after all)?
 ∑cxₙ≃c∑xₙ : ∀ (xs : ℕ -> ℝ) -> ∀ (c : ℝ) -> ∀ (m n : ℕ) -> ∑ (λ i -> c * xs i) m n ≃ c * ∑ xs m n
 ∑cxₙ≃c∑xₙ xs c zero n = lem n
   where
@@ -2037,6 +2038,7 @@ e = proj₁ (proposition-3-6-1 {λ n → (+ 1 / n !) {n !≢0} ⋆} {(+ 1 / 2) �
       (+ 1 / 2) ⋆ * ∣ n !⁻¹ ⋆ ∣  ∎)
       where open ≤-Reasoning
 
+
 x≤0⇒∣x∣≃-x : {x : ℝ} → x ≤ 0ℝ → ∣ x ∣ ≃ - x
 x≤0⇒∣x∣≃-x {x} x≤0 = begin-equality
   (∣ x ∣  ≈⟨ ≃-symm ∣-x∣≃∣x∣ ⟩
@@ -2130,114 +2132,140 @@ Suppose n odd. Then
 
 = ∣(-1)ⁿxₙ + ⋯ + (-1)ⁿ⁺ᵐ⁻ⁿxₙ₊ₘ₋ₙ∣
 -}
+
 {-
-alternating-series-test : {xs : ℕ → ℝ} → xs isDecreasing → xs ConvergesTo 0ℝ →
-                          SeriesOf (λ n → pow (- 1ℝ) n * xs n) isConvergent
-alternating-series-test {xs} dec xₙ→0 = fast-cauchy⇒convergent {!!}
-  where
-    open ≤-Reasoning
-    
-    [-1]ᵏxₖ : ℕ → ℝ
-    [-1]ᵏxₖ k = pow (- 1ℝ) k * xs k
-
-    dec₂ : xs isDecreasing₂
-    dec₂ = fast-isDecreasing⇒isDecreasing₂ dec
-  {-
-  Let n∈ℕ and suppose, towards contradiction, that xₙ < 0. Then ∣xₙ∣ > 0.
-  Since (xₙ)→0, there is N ≥ n such that ∣xₘ∣ < ∣xₙ∣ for m ≥ N ≥ n.
-  As (xₙ) is decreasing and m ≥ n, we have xₘ ≤ xₙ < 0. Thus ∣xₙ∣ ≤ ∣xₘ∣,
-  contradicting ∣xₘ∣ < ∣xₙ∣. Hence 0 ≤ xₙ.
-  -}
-    xₙ≥0 : (n : ℕ) → xs n ≥ 0ℝ
-    xₙ≥0 n = ≮⇒≥ (λ xₙ<0 → let get = fast-ε-from-convergence (0ℝ , xₙ→0) ∣ xs n ∣ (0<x⇒posx (x<0⇒0<∣x∣ xₙ<0))
-                                     ; N = suc (proj₁ get); M = N ℕ.⊔ n in
-                           <-irrefl ≃-refl (begin-strict
-      ∣ xs n ∣      ≤⟨ x≤y≤0⇒∣y∣≤∣x∣ {xs M} {xs n} (dec₂ M n (ℕP.m≤n⊔m N n) , <⇒≤ xₙ<0) ⟩
-      ∣ xs M ∣      ≈⟨ ∣-∣-cong (solve 1 (λ x → x ⊜ x ⊖ Κ 0ℚᵘ) ≃-refl (xs M)) ⟩
-      ∣ xs M - 0ℝ ∣ <⟨ proj₂ get M (ℕP.m≤m⊔n N n) ⟩
-      ∣ xs n ∣       ∎))
-
-  {-
-    ∣∑ᵢ₌₃⁵(-1)ⁱxᵢ∣ = ∣-x₃ + x₄ - x₅∣
-                  = x₃ - x₄ + x₅
-                  ≤ x₃
-
-    Split on n even or odd cases?
-    n even:
-    ∣∑ᵢ₌ₙᵐ(-1)ⁱxᵢ∣ = ∑ᵢ₌ₙᵐ(-1)ⁱxᵢ ≤ xₙ
-    n odd:
-    ∣∑ᵢ₌ₙᵐ(-1)ⁱxᵢ∣ = ∣-xₙ + ∑ᵢ₌ₙ₊₁ᵐ(-1)ⁱxᵢ∣
-                  = xₙ - ∑ᵢ₌ₙ₊₁ᵐ(-1)ⁱxᵢ
-                  ≤ xₙ
-  -}
-    partial≥0 : (m n : ℕ) → m ℕ.> n → ∑ [-1]ᵏxₖ n m ≥ 0ℝ
-    partial≥0 m n m>n = {!!}
-
-  {-
-  -}
-    lem : (m n : ℕ) → n ℕ.≤ m → [-1]ᵏxₖ n ≤ xs m
-    lem m n n≤m with ≤⇒≡∨< n m n≤m
-    ... | inj₁ refl = {!!}
-    ... | inj₂ n<m  = {!!}
-
-
-
-    {-lem : (m n : ℕ) → m ℕ.≥ n → ∑ [-1]ᵏxₖ n m ≤ xs n
-    lem m n m≥n with ≤⇒≡∨< n m m≥n
-    lem zero .0 m≥n | inj₁ refl          = xₙ≥0 0
-    lem (suc m) .(suc m) m≥n | inj₁ refl = begin
-      ∑₀ [-1]ᵏxₖ (suc m) - ∑₀ [-1]ᵏxₖ (suc m) ≈⟨ +-inverseʳ (∑₀ [-1]ᵏxₖ (suc m)) ⟩
-      0ℝ                                      ≤⟨ xₙ≥0 (suc m) ⟩
-      xs (suc m)                               ∎
-    lem (suc m) n m≥n | inj₂ m>n = {!!}
-
-    {-
-    0 + 1x₀ ≥ 0 + 1x₀ + 1 * -1x₁ + 1 * -1x₂ 
-    -}
-    lem2 : (m n : ℕ) → (m>n : m ℕ.> n) →
-           ∑ᵀ [-1]ᵏxₖ n m (ℕP.<⇒≤ m>n) ≥ ∑ᵀ [-1]ᵏxₖ n (2 ℕ.+ m) (ℕP.≤-trans (ℕP.<⇒≤ m>n) (ℕP.m≤n+m m 2))
-    lem2 (suc zero) zero m≥n = {!∑ᵀ [-1]ᵏxₖ 0 3 (ℕP.≤-trans (ℕP.<⇒≤ m≥n) (ℕP.m≤n+m 1 2))!}
-    lem2 (suc zero) (suc n) (ℕ.s≤s ())
-    lem2 (suc (suc m)) n m≥n = {!!}
-
-    lem3 : (m n : ℕ) → (m≥n : m ℕ.≥ n) →
-           ∑ [-1]ᵏxₖ n m ≤ xs m
-    lem3 m n m≥n with ≤⇒≡∨< n m m≥n
-    ... | inj₁ refl = {!!}
-    lem3 (suc m) n m≥n | inj₂ m>n = {!!}-}
-
-abstract
-  fast-alternating-series-test : {xs : ℕ → ℝ} → xs isDecreasing → xs ConvergesTo 0ℝ →
-                                 SeriesOf (λ n → pow (- 1ℝ) n * xs n) isConvergent
-  fast-alternating-series-test = alternating-series-test
-
-π : ℝ
-π = (+ 4 / 1) ⋆ * proj₁ (fast-alternating-series-test {λ n → (+ 1 / (1 ℕ.+ 2 ℕ.* n)) ⋆}
-                        dec [1+2k]⁻¹→0)
-  where
-    open ≤-Reasoning
-    [1+2k]⁻¹ : ℕ → ℝ
-    [1+2k]⁻¹ n = (+ 1 / (1 ℕ.+ 2 ℕ.* n)) ⋆
-    
-    dec : [1+2k]⁻¹ isDecreasing
-    dec n = p≤q⇒p⋆≤q⋆ (+ 1 / (1 ℕ.+ 2 ℕ.* (suc n))) (+ 1 / (1 ℕ.+ 2 ℕ.* n))
-            (q≤r⇒+p/r≤+p/q 1 (1 ℕ.+ 2 ℕ.* n) (1 ℕ.+ 2 ℕ.* (suc n))
-            (ℕP.+-monoʳ-≤ 1 (ℕP.*-monoʳ-≤ 2 (ℕP.n≤1+n n))))
-
-    [1+2k]⁻¹→0 : [1+2k]⁻¹ ConvergesTo 0ℝ
-    [1+2k]⁻¹→0 = con* (λ {(suc k-1) → let k = suc k-1 in
-                 k-1 , λ n n≥k → begin
-      ∣ [1+2k]⁻¹ n - 0ℝ ∣ ≈⟨ ∣-∣-cong (solve 1 (λ x → x ⊖ Κ 0ℚᵘ ⊜ x) ≃-refl ([1+2k]⁻¹ n)) ⟩
-      ∣ [1+2k]⁻¹ n ∣      ≈⟨ nonNegx⇒∣x∣≃x (nonNegp⇒nonNegp⋆ (+ 1 / (1 ℕ.+ 2 ℕ.* n)) _) ⟩
-      [1+2k]⁻¹ n         ≤⟨ p≤q⇒p⋆≤q⋆ (+ 1 / (1 ℕ.+ 2 ℕ.* n)) (+ 1 / (1 ℕ.+ 2 ℕ.* k))
-                            (q≤r⇒+p/r≤+p/q 1 (1 ℕ.+ 2 ℕ.* k) (1 ℕ.+ 2 ℕ.* n)
-                            (ℕ.s≤s (ℕP.*-monoʳ-≤ 2 n≥k))) ⟩
-      [1+2k]⁻¹ k         ≤⟨ p≤q⇒p⋆≤q⋆ (+ 1 / (1 ℕ.+ 2 ℕ.* k)) (+ 1 / k)
-                            (q≤r⇒+p/r≤+p/q 1 k (1 ℕ.+ 2 ℕ.* k)
-                            (ℕP.≤-trans 
-                            (ℕP.m≤n*m k {2} (ℕ.s≤s ℕ.z≤n)) (ℕP.n≤1+n (2 ℕ.* k)))) ⟩
-      (+ 1 / k) ⋆         ∎})
+  Plan:
+    - Prove that each ∑₀ is nonnegative.
+    - Prove that (-1)ⁿ*∑ₖ₌ₙᵐ(-1)ᵏxₖ is nonnegative for all m≥n by:
+      - proving from the subsequence that it decreases and converges to 0ℝ; then
+      - calling the proof for ∑₀.
+    - Prove similarly that each ∑₀ is ≤ x₀ (from 1 you can use the previous proof for n=1 since you're subtracting a nonnegative number from x₀),
+      then extend to (-1)ⁿ*∑ₖ₌ₙᵐ(-1)ᵏxₖ for all n.
+    - Finally, point to the Cauchy criterion.
 -}
+
+--maybe move these into RealProperties?
+≃-refl₂ : {x y : ℝ} → x ≡ y → x ≃ y
+≃-refl₂ {x} {y} refl = ≃-refl {x}
+
+[-1]ᵏ≃1∨[-1]ᵏ≃[-1] : (k : ℕ) → pow (- 1ℝ) k ≃ 1ℝ ⊎ pow (- 1ℝ) k ≃ (- 1ℝ)
+[-1]ᵏ≃1∨[-1]ᵏ≃[-1] zero      = inj₁ ≃-refl
+[-1]ᵏ≃1∨[-1]ᵏ≃[-1] (suc n)   = [ part₁ n , part₂ n ]′ ([-1]ᵏ≃1∨[-1]ᵏ≃[-1] n)
+  where
+    open ≃-Reasoning
+
+    part₁ : (k : ℕ) → pow (- 1ℝ) k ≃ 1ℝ → pow (- 1ℝ) (suc k) ≃ 1ℝ ⊎ pow (- 1ℝ) (suc k) ≃ (- 1ℝ)
+    part₁ k [-1]ᵏ=1 = inj₂ (begin
+          pow (- 1ℝ) k * - 1ℝ    ≈⟨ *-congʳ [-1]ᵏ=1 ⟩
+          1ℝ * - 1ℝ              ≈⟨ solve 0 (Κ 1ℚᵘ ⊗ (⊝ (Κ 1ℚᵘ)) ⊜ (⊝ Κ 1ℚᵘ) ) ≃-refl ⟩
+          - 1ℝ                   ∎)
+
+    part₂ : (k : ℕ) → pow (- 1ℝ) k ≃ (- 1ℝ) → pow (- 1ℝ) (suc k) ≃ 1ℝ ⊎ pow (- 1ℝ) (suc k) ≃ (- 1ℝ)
+    part₂ k [-1]ᵏ=[-1] = inj₁ (begin
+          pow (- 1ℝ) k * - 1ℝ    ≈⟨ *-congʳ [-1]ᵏ=[-1] ⟩
+          - 1ℝ * - 1ℝ            ≈⟨ solve 0 (⊝ (Κ 1ℚᵘ) ⊗ (⊝ (Κ 1ℚᵘ)) ⊜ Κ 1ℚᵘ ) ≃-refl ⟩
+          1ℝ                   ∎)
+
+[-1]ⁿ*[-1]ⁿ≃1 : (n : ℕ) → pow (- 1ℝ) n * pow (- 1ℝ) n ≃ 1ℝ
+[-1]ⁿ*[-1]ⁿ≃1 n = [ case₁ , case₂ ]′ ([-1]ᵏ≃1∨[-1]ᵏ≃[-1] n)
+  where
+  open ≃-Reasoning
+
+  case₁ : pow (- 1ℝ) n ≃ 1ℝ → pow (- 1ℝ) n * pow (- 1ℝ) n ≃ 1ℝ
+  case₁ [-1]ⁿ≃1     = begin
+                     pow (- 1ℝ) n * pow (- 1ℝ) n ≈⟨ *-cong [-1]ⁿ≃1 [-1]ⁿ≃1 ⟩
+                     1ℝ * 1ℝ ≈⟨ *-identityˡ 1ℝ ⟩
+                     1ℝ ∎
+
+  case₂ : pow (- 1ℝ) n ≃ (- 1ℝ) → pow (- 1ℝ) n * pow (- 1ℝ) n ≃ 1ℝ
+  case₂ [-1]ⁿ≃[-1]  = begin
+                     pow (- 1ℝ) n * pow (- 1ℝ) n ≈⟨ *-cong [-1]ⁿ≃[-1] [-1]ⁿ≃[-1] ⟩
+                     (- 1ℝ) * (- 1ℝ) ≈⟨ solve 0 (⊝ Κ 1ℚᵘ ⊗ ⊝ Κ 1ℚᵘ ⊜ Κ 1ℚᵘ) ≃-refl ⟩
+                     1ℝ ∎
+
+[-1]ⁿ≃[-1]ⁿ⁺² : ∀ (n : ℕ) → pow (- 1ℝ) n ≃ pow (- 1ℝ) (suc (suc n))
+[-1]ⁿ≃[-1]ⁿ⁺² n = begin
+    pow (- 1ℝ) n ≈⟨ ≃-symm (*-identityʳ (pow (- 1ℝ) n))⟩
+    pow (- 1ℝ) n * 1ℝ ≈⟨ *-congˡ (solve 0 (Κ 1ℚᵘ ⊜ (⊝ Κ 1ℚᵘ) ⊗ (⊝ Κ 1ℚᵘ)) ≃-refl) ⟩
+    pow (- 1ℝ) n * ((- 1ℝ) * (- 1ℝ)) ≈⟨ ≃-symm (*-assoc (pow (- 1ℝ) n) (- 1ℝ) (- 1ℝ)) ⟩
+    pow (- 1ℝ) n * (- 1ℝ) * (- 1ℝ) ∎
+    where
+      open ≃-Reasoning
+
+--the equivalence of two real-valued functions
+_fn≃_ : {A : Set} → (A → ℝ) → (A → ℝ) → Set
+f fn≃ g = ∀ x → f x ≃ g x
+--maybe we should prove that this is an equivalence relation
+
+∑₀-cong : {xs ys : ℕ → ℝ} → xs fn≃ ys → ∑₀ xs fn≃ ∑₀ ys
+∑₀-cong {xs} {ys} alleq zero = ≃-refl
+∑₀-cong {xs} {ys} alleq (suc n) = +-cong (∑₀-cong alleq n) (alleq n)
+
+∑ₙᵐ≃∑₀ᵐ-∑₀ⁿ : (xs : ℕ → ℝ) → (n m : ℕ) → ∑ xs n m ≃ ∑₀ xs m - ∑₀ xs n
+∑ₙᵐ≃∑₀ᵐ-∑₀ⁿ xs    zero m = begin
+    ∑₀ xs m ≈⟨ ≃-symm (+-identityʳ (∑₀ xs m)) ⟩
+    ∑₀ xs m + 0ℝ ≈⟨ +-congʳ (∑₀ xs m) 0≃-0 ⟩
+    ∑₀ xs m - 0ℝ ∎
+    where
+      open ≃-Reasoning
+∑ₙᵐ≃∑₀ᵐ-∑₀ⁿ xs (suc n) m = ≃-refl
+
+{-
+  lem : pow (- 1ℝ) (2 ℕ.* n) ≃ pow (- 1ℝ) n * pow (- 1ℝ) n
+  lem = begin
+    pow (- 1ℝ) (2 ℕ.* n) ≈⟨ ≃-refl₂ (sym (cong (pow (- 1ℝ)) (ℕP.+-assoc n n zero)))   ⟩
+    pow (- 1ℝ) (n ℕ.+ n ℕ.+ zero) ≈⟨ ≃-refl₂ (cong (pow (- 1ℝ)) (ℕP.+-identityʳ (n ℕ.+ n))) ⟩
+    pow (- 1ℝ) (n ℕ.+ n) ≈⟨ ≃-symm (xⁿxᵐ≃xⁿ⁺ᵐ (- 1ℝ) n n) ⟩
+    pow (- 1ℝ) n * pow (- 1ℝ) n ∎
+-}
+
+shift : {A : Set} → (ℕ → A) → ℕ → (ℕ → A)
+shift xs n = (λ k → xs (n ℕ.+ k))
+
+shift-is-subsequence : (xs : ℕ → ℝ) → (n : ℕ) → (shift xs n) SubsequenceOf xs
+shift-is-subsequence xs n = subseq* (ν , part₁ , part₂)
+  where
+    ν : ℕ → ℕ
+    ν = n ℕ.+_
+    
+    part₁ : (k : ℕ) → shift xs n k ≃ xs (ν k)
+    part₁ k = ≃-refl {xs (n ℕ.+ k)}
+
+    part₂ : (k : ℕ) → ν k ℕ.< ν (suc k)
+    part₂ k = ℕP.+-monoʳ-< n (l<sucl k)
+      where
+        l<sucl : (l : ℕ) → l ℕ.< suc l
+        l<sucl zero = ℕ.s≤s ℕ.z≤n
+        l<sucl (suc n) = ℕ.s≤s (l<sucl n)
+    --part₂ zero = ℕP.+-monoʳ-< n (ℕ.s≤s ℕ.z≤n)     --n ℕ.< suc n
+    --part₂ (suc k) = {!!}
+
+shift-isDecreasing : {xs : ℕ → ℝ} → xs isDecreasing → ∀ (n : ℕ) → shift xs n isDecreasing
+shift-isDecreasing {xs} dec n k = begin
+  shift xs n (suc k)     ≈⟨ ≃-refl₂ (cong xs (ℕP.+-suc n k)) ⟩
+  xs (suc (n ℕ.+ k))     ≤⟨ dec (n ℕ.+ k) ⟩
+  shift xs n k   ∎
+  where
+    open ≤-Reasoning
+
+shift-sum : (xs : ℕ → ℝ) → ∀ (n k : ℕ) → ∑₀ (shift xs n) k ≃ ∑ xs n (n ℕ.+ k)
+shift-sum xs zero k = ≃-refl
+shift-sum xs (suc n-1) zero = let n = suc n-1 in begin
+  0ℝ    ≈⟨ solve 1 (λ x → Κ 0ℚᵘ ⊜ x ⊖ x) ≃-refl (∑₀ xs n) ⟩
+  ∑ xs n n ≈⟨ ≃-refl₂ (sym (cong (∑ xs n) (ℕP.+-identityʳ n))) ⟩
+  ∑ xs n (n ℕ.+ 0) ∎
+  where
+    open ≃-Reasoning
+shift-sum xs (suc n-1) (suc k) = let n = suc n-1 in begin
+  ∑₀ (shift xs n) k + shift xs n k   ≈⟨ +-congˡ (shift xs n k) (shift-sum xs n k) ⟩
+  ∑ xs n (n ℕ.+ k) + xs (n ℕ.+ k)   ≈⟨ ≃-refl ⟩
+  ∑₀ xs (n ℕ.+ k) - ∑₀ xs n + xs (n ℕ.+ k) ≈⟨ solve 3 (λ x y z → x ⊖ y ⊕ z ⊜ x ⊕ z ⊖ y) ≃-refl (∑₀ xs (n ℕ.+ k)) (∑₀ xs n) (xs (n ℕ.+ k)) ⟩
+  ∑₀ xs (n ℕ.+ k) + xs (n ℕ.+ k) - ∑₀ xs n ≈⟨ ≃-refl₂ (cong (∑ xs n) (sym (ℕP.+-suc n k))) ⟩   --∑ xs n (suc (n ℕ.+ k)) ≃ ∑ xs n (n ℕ.+ suc k)
+  ∑ xs n (n ℕ.+ suc k)  ∎
+  where
+    open ≃-Reasoning
+
+--NOTE: we were here
 
 {-
 Suppose xₙ > x. Then xₙ - x > 0, and so ther

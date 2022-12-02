@@ -42,10 +42,16 @@ record ℝ : Set where
     -- No n≢0 condition for seq
     seq : ℕ → ℚᵘ
     reg : (m n : ℕ) {m≢0 : m ≢0} {n≢0 : n ≢0} →
-          ℚ.∣ seq m ℚ.- seq n ∣ ℚ.≤
-          (+ 1 / m) {m≢0} ℚ.+ (+ 1 / n) {n≢0}
+            ℚ.∣ seq m ℚ.- seq n ∣ ℚ.≤
+            (+ 1 / m) {m≢0} ℚ.+ (+ 1 / n) {n≢0}
 
 open ℝ public
+
+abstract
+  fast-reg : (x : ℝ) → (m n : ℕ) {m≢0 : m ≢0} {n≢0 : n ≢0} →
+            ℚ.∣ seq x m ℚ.- seq x n ∣ ℚ.≤
+            (+ 1 / m) {m≢0} ℚ.+ (+ 1 / n) {n≢0} 
+  fast-reg = reg
 
 infix 4 _≃_
 infixl 6 _+_ _-_ _⊔_ _⊓_ _⊓₂_
@@ -101,7 +107,7 @@ canonical-strict-upper-bound x (suc k₁) = let n = suc k₁ in begin-strict
   ℚ.∣ seq x n ∣                               ≈⟨ ℚP.∣-∣-cong (solve 2 (λ xₙ x₁ ->
                                                  xₙ ⊜ (x₁ ⊕ (xₙ ⊖ x₁))) ℚP.≃-refl (seq x n) (seq x 1)) ⟩
   ℚ.∣ seq x 1 ℚ.+ (seq x n ℚ.- seq x 1)∣      ≤⟨ ℚP.∣p+q∣≤∣p∣+∣q∣ (seq x 1) (seq x n ℚ.- seq x 1) ⟩
-  ℚ.∣ seq x 1 ∣ ℚ.+ ℚ.∣ seq x n ℚ.- seq x 1 ∣ ≤⟨ ℚP.+-monoʳ-≤ ℚ.∣ seq x 1 ∣ (reg x n 1) ⟩
+  ℚ.∣ seq x 1 ∣ ℚ.+ ℚ.∣ seq x n ℚ.- seq x 1 ∣ ≤⟨ ℚP.+-monoʳ-≤ ℚ.∣ seq x 1 ∣ (fast-reg x n 1) ⟩
   ℚ.∣ seq x 1 ∣ ℚ.+ (+ 1 / n ℚ.+ ℚ.1ℚᵘ)       ≤⟨ ℚP.+-monoʳ-≤ ℚ.∣ seq x 1 ∣ (ℚP.+-monoˡ-≤ ℚ.1ℚᵘ {+ 1 / n} {1ℚᵘ} (1/n≤1 n)) ⟩
   ℚ.∣ seq x 1 ∣ ℚ.+ 2ℚᵘ                       <⟨ proj₁ (canonical-well-defined x) ⟩
   + K x / 1                                    ∎
@@ -120,7 +126,7 @@ reg (x + y) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂ in begin
   ℚ.∣ seq x (2 ℕ.* m) ℚ.- seq x (2 ℕ.* n) ℚ.+
       (seq y (2 ℕ.* m) ℚ.- seq y (2 ℕ.* n)) ∣   ≤⟨ ℚP.∣p+q∣≤∣p∣+∣q∣ (seq x (2 ℕ.* m) ℚ.- seq x (2 ℕ.* n)) (seq y (2 ℕ.* m) ℚ.- seq y (2 ℕ.* n)) ⟩
   ℚ.∣ seq x (2 ℕ.* m) ℚ.- seq x (2 ℕ.* n) ∣ ℚ.+
-  ℚ.∣ seq y (2 ℕ.* m) ℚ.- seq y (2 ℕ.* n) ∣     ≤⟨ ℚP.+-mono-≤ (reg x (2 ℕ.* m) (2 ℕ.* n)) (reg y (2 ℕ.* m) (2 ℕ.* n)) ⟩
+  ℚ.∣ seq y (2 ℕ.* m) ℚ.- seq y (2 ℕ.* n) ∣     ≤⟨ ℚP.+-mono-≤ (fast-reg x (2 ℕ.* m) (2 ℕ.* n)) (fast-reg y (2 ℕ.* m) (2 ℕ.* n)) ⟩
   + 1 / (2 ℕ.* m) ℚ.+ + 1 / (2 ℕ.* n) ℚ.+
   (+ 1 / (2 ℕ.* m) ℚ.+ + 1 / (2 ℕ.* n))         ≈⟨ ℚ.*≡* (ℤsolve 2 (λ m n ->
                                                    (((κ (+ 1) :* (κ (+ 2) :* n) :+ κ (+ 1) :* (κ (+ 2) :* m))
@@ -148,7 +154,7 @@ reg (x + y) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂ in begin
 seq (- x) n = ℚ.- seq x n
 reg (- x) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂ in begin
   ℚ.∣ ℚ.- seq x m ℚ.- ℚ.- seq x n ∣ ≈⟨ ℚP.∣-∣-cong (ℚP.≃-sym (ℚP.≃-reflexive (ℚP.neg-distrib-+ (seq x m) (ℚ.- seq x n)))) ⟩
-  ℚ.∣ ℚ.- (seq x m ℚ.- seq x n) ∣   ≤⟨ ℚP.≤-respˡ-≃ (ℚP.≃-sym (ℚP.∣-p∣≃∣p∣ (seq x m ℚ.- seq x n))) (reg x m n) ⟩
+  ℚ.∣ ℚ.- (seq x m ℚ.- seq x n) ∣   ≤⟨ ℚP.≤-respˡ-≃ (ℚP.≃-sym (ℚP.∣-p∣≃∣p∣ (seq x m ℚ.- seq x n))) (fast-reg x m n) ⟩
   + 1 / m ℚ.+ + 1 / n                ∎
   where open ℚP.≤-Reasoning
 
@@ -186,7 +192,7 @@ reg (x ⊔ y) (suc k₁) (suc k₂) = [ left , right ]′ (ℚP.≤-total (seq x
                                                                   ℚP.≃-refl (seq x m ℚ.⊔ seq y m) (seq x n ℚ.⊔ seq y n))) ⟩
           ℚ.∣ (seq x n ℚ.⊔ seq y n) ℚ.- (seq x m ℚ.⊔ seq y m) ∣ ≈⟨ ℚP.0≤p⇒∣p∣≃p (ℚP.p≤q⇒0≤q-p hyp1) ⟩
           (seq x n ℚ.⊔ seq y n) ℚ.- (seq x m ℚ.⊔ seq y m)       ≤⟨ lem (seq x n) (seq y n) (seq x m) (seq y m) hyp2 m n
-                                                                   (ℚP.≤-respʳ-≃ (ℚP.+-comm (+ 1 / n) (+ 1 / m)) (reg y n m)) ⟩
+                                                                   (ℚP.≤-respʳ-≃ (ℚP.+-comm (+ 1 / n) (+ 1 / m)) (fast-reg y n m)) ⟩
           (+ 1 / m) ℚ.+ (+ 1 / n)                                ∎ 
 
         yn≤xn : seq y n ℚ.≤ seq x n -> ℚ.∣ (seq x m ℚ.⊔ seq y m) ℚ.- (seq x n ℚ.⊔ seq y n) ∣ ℚ.≤ ((+ 1) / m) ℚ.+ ((+ 1) / n)
@@ -200,7 +206,7 @@ reg (x ⊔ y) (suc k₁) (suc k₂) = [ left , right ]′ (ℚP.≤-total (seq x
                                                                    (ℚP.+-congˡ (ℚ.- (seq y m ℚ.⊔ seq x m)) (ℚP.⊔-comm (seq x n) (seq y n))) ⟩
           (seq y n ℚ.⊔ seq x n) ℚ.- (seq y m ℚ.⊔ seq x m) 
                                                                 ≤⟨ lem (seq y n) (seq x n) (seq y m) (seq x m) hyp2 m n
-                                                                   (ℚP.≤-respʳ-≃ (ℚP.+-comm (+ 1 / n) (+ 1 / m)) (reg x n m)) ⟩
+                                                                   (ℚP.≤-respʳ-≃ (ℚP.+-comm (+ 1 / n) (+ 1 / m)) (fast-reg x n m)) ⟩
           (+ 1 / m) ℚ.+ (+ 1 / n)                                ∎
 
     right : seq x n ℚ.⊔ seq y n ℚ.≤ seq x m ℚ.⊔ seq y m ->
@@ -208,7 +214,7 @@ reg (x ⊔ y) (suc k₁) (suc k₂) = [ left , right ]′ (ℚP.≤-total (seq x
     right hyp1 = [ xm≤ym , ym≤xm ]′ (ℚP.≤-total (seq x m) (seq y m))
       where
         xm≤ym : seq x m ℚ.≤ seq y m -> ℚ.∣ (seq x m ℚ.⊔ seq y m) ℚ.- (seq x n ℚ.⊔ seq y n) ∣ ℚ.≤ ((+ 1) / m) ℚ.+ ((+ 1) / n)
-        xm≤ym hyp2 = ℚP.≤-respˡ-≃ (ℚP.≃-sym (ℚP.0≤p⇒∣p∣≃p (ℚP.p≤q⇒0≤q-p hyp1))) (lem (seq x m) (seq y m) (seq x n) (seq y n) hyp2 m n (reg y m n)) 
+        xm≤ym hyp2 = ℚP.≤-respˡ-≃ (ℚP.≃-sym (ℚP.0≤p⇒∣p∣≃p (ℚP.p≤q⇒0≤q-p hyp1))) (lem (seq x m) (seq y m) (seq x n) (seq y n) hyp2 m n (fast-reg y m n)) 
 
         ym≤xm : seq y m ℚ.≤ seq x m -> ℚ.∣ (seq x m ℚ.⊔ seq y m) ℚ.- (seq x n ℚ.⊔ seq y n) ∣ ℚ.≤ ((+ 1) / m) ℚ.+ ((+ 1) / n)
         ym≤xm hyp2 = begin
@@ -216,7 +222,7 @@ reg (x ⊔ y) (suc k₁) (suc k₂) = [ left , right ]′ (ℚP.≤-total (seq x
            (seq x m ℚ.⊔ seq y m) ℚ.- (seq x n ℚ.⊔ seq y n)       ≈⟨ ℚP.≃-trans (ℚP.+-congˡ (ℚ.- (seq x n ℚ.⊔ seq y n)) (ℚP.⊔-comm (seq x m) (seq y m)))
                                                                     (ℚP.+-congʳ (seq y m ℚ.⊔ seq x m)
                                                                     (ℚP.-‿cong {seq x n ℚ.⊔ seq y n} {seq y n ℚ.⊔ seq x n} (ℚP.⊔-comm (seq x n) (seq y n)))) ⟩
-           (seq y m ℚ.⊔ seq x m) ℚ.- (seq y n ℚ.⊔ seq x n)       ≤⟨ lem (seq y m) (seq x m) (seq y n) (seq x n) hyp2 m n (reg x m n) ⟩
+           (seq y m ℚ.⊔ seq x m) ℚ.- (seq y n ℚ.⊔ seq x n)       ≤⟨ lem (seq y m) (seq x m) (seq y n) (seq x n) hyp2 m n (fast-reg x m n) ⟩
            (+ 1 / m) ℚ.+ (+ 1 / n)                                                      ∎
 
 -- x ⊓ y is the minimum of x and y.
@@ -233,7 +239,7 @@ reg (x ⊓ y) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂; xₘ = seq
   ℚ.∣ ℚ.- ((ℚ.- xₘ) ℚ.⊔ (ℚ.- yₘ)) ℚ.-
      (ℚ.- ((ℚ.- xₙ) ℚ.⊔ (ℚ.- yₙ))) ∣          ≈⟨ ℚP.∣-∣-cong (solve 2 (λ m n -> ((⊝ m) ⊖ (⊝ n)) ⊜ (n ⊖ m)) ℚP.≃-refl ((ℚ.- xₘ) ℚ.⊔ (ℚ.- yₘ)) ((ℚ.- xₙ) ℚ.⊔ (ℚ.- yₙ))) ⟩
   ℚ.∣ ((ℚ.- xₙ) ℚ.⊔ (ℚ.- yₙ)) ℚ.-
-      ((ℚ.- xₘ) ℚ.⊔ (ℚ.- yₘ)) ∣               ≤⟨ reg (- x ⊔ - y) n m ⟩
+      ((ℚ.- xₘ) ℚ.⊔ (ℚ.- yₘ)) ∣               ≤⟨ fast-reg (- x ⊔ - y) n m ⟩
   + 1 / n ℚ.+ + 1 / m                         ≈⟨ ℚP.+-comm (+ 1 / n) (+ 1 / m) ⟩
   + 1 / m ℚ.+ + 1 / n                          ∎
   where
@@ -266,8 +272,8 @@ reg (x * y) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂; k = K x ℕ.
                                                   (ℚP.*-monoˡ-≤-nonNeg {ℚ.∣ x₂ₖₘ ℚ.- x₂ₖₙ ∣} _ ∣y₂ₖₙ∣≤k) ⟩
   (+ k / 1) ℚ.* ℚ.∣ y₂ₖₘ ℚ.- y₂ₖₙ ∣ ℚ.+
   (+ k / 1) ℚ.* ℚ.∣ x₂ₖₘ ℚ.- x₂ₖₙ ∣           ≤⟨ ℚP.+-mono-≤
-                                                 (ℚP.*-monoʳ-≤-nonNeg {+ k / 1} _ (reg y 2km 2kn))
-                                                 (ℚP.*-monoʳ-≤-nonNeg {+ k / 1} _ (reg x 2km 2kn)) ⟩
+                                                 (ℚP.*-monoʳ-≤-nonNeg {+ k / 1} _ (fast-reg y 2km 2kn))
+                                                 (ℚP.*-monoʳ-≤-nonNeg {+ k / 1} _ (fast-reg x 2km 2kn)) ⟩
   (+ k / 1) ℚ.* ((+ 1 / 2km) ℚ.+
   (+ 1 / 2kn)) ℚ.+
   (+ k / 1) ℚ.* ((+ 1 / 2km) ℚ.+
@@ -313,7 +319,7 @@ reg (p ⋆) (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂ in begin
 seq ∣ x ∣ n = ℚ.∣ seq x n ∣
 reg ∣ x ∣ (suc k₁) (suc k₂) = let m = suc k₁; n = suc k₂ in begin
   ℚ.∣ ℚ.∣ seq x m ∣ ℚ.- ℚ.∣ seq x n ∣ ∣ ≤⟨ ∣∣p∣-∣q∣∣≤∣p-q∣ (seq x m) (seq x n) ⟩
-  ℚ.∣ seq x m ℚ.- seq x n ∣            ≤⟨ reg x m n ⟩
+  ℚ.∣ seq x m ℚ.- seq x n ∣            ≤⟨ fast-reg x m n ⟩
   + 1 / m ℚ.+ + 1 / n                   ∎
   where open ℚP.≤-Reasoning
 
