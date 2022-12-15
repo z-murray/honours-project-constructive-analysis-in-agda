@@ -27,8 +27,10 @@ open import Algebra.Structures
 open import Data.Empty
 open import Data.Sum
 open import Data.Maybe.Base
+
 import NonReflectiveQ as ℚ-Solver
 import NonReflectiveZ as ℤ-Solver
+
 open import Data.List
 
 open ℚᵘ
@@ -300,3 +302,4 @@ p≤q+j⁻¹⇒p≤q {p} {q} hyp = p-q≤j⁻¹⇒p≤q (λ {(suc j-1) -> let j 
   where
     open ℚP.≤-Reasoning
     open import NonReflectiveQ
+
