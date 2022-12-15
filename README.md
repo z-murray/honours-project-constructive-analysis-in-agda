@@ -12,9 +12,9 @@ Bishop's constructive analysis is described in the following reference:
 E. Bishop and D. S. Bridges, *Constructive Analysis*. Comprehensive Studies in
 Mathematics, vol. 279. Springer, 1985
 
-##Adding Changes
+## Adding Changes
 If you would like to submit any changes, please feel free to make a pull request and it will be reviewed.
 
-##Additional Contributors
+## Additional Contributors
 Thank you to the following contributors for your additional work!
 - Viktor Csimma
