@@ -627,32 +627,20 @@ so 1 + M is an upper bound of A.                                                
 -}
 totallyBounded⇒boundedAbove : {P : Pred ℝ 0ℓ} → P isTotallyBounded → P isBoundedAbove
 totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x∈P; k<n = proj₁ (proj₂ (proj₂ PT-get) x∈P); k = proj₁ k<n
-                                                            ; yₖ = proj₁ (proj₁ (proj₂ PT-get) (fromℕ< (proj₂ k<n))) in
+                                                            ; fₖ = proj₁ (f (fromℕ< (proj₂ k<n))) ; zₖ = z k in
   begin
-  x           ≈⟨ solve 2 (λ x yₖ → x ⊜ x ⊖ yₖ ⊕ yₖ) ≃-refl x yₖ ⟩
-  x - yₖ + yₖ ≤⟨ +-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
-                 {!!} ⟩
-  --+-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
-                        --  (m≤n⇒fm≤maxfn y {!!} {!!} {!!}) ⟩
+  x           ≈⟨ solve 2 (λ x fₖ → x ⊜ x ⊖ fₖ ⊕ fₖ) ≃-refl x fₖ ⟩
+  x - fₖ + fₖ ≈⟨ +-congʳ (x - fₖ) (≃-symm (zₖ-wellDef k (proj₂ k<n))) ⟩ --writing zₖ instead of fₖ; it is easier to prove zₖ≤M than fₖ≤M
+  x - fₖ + zₖ ≤⟨ +-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
+                 (m≤n⇒fm≤maxfn z k n-1 (k<n⇒k≤n-1 (proj₂ k<n))) ⟩
   1ℝ + M       ∎
   where
     open ≤-Reasoning
     PT-get = PT 1ℝ (fast-p<q⇒p⋆<q⋆ 0ℚᵘ 1ℚᵘ (ℚP.positive⁻¹ _))
-    n = suc (proj₁ PT-get)
+    n-1 = proj₁ PT-get
+    n = suc n-1
     f : Fin n → 𝕊 P
     f = proj₁ (proj₂ PT-get)
-
-    --y k with p : m < n ≡ f (fromℕ m<n)
-    
-
-    y : ℕ → ℝ
-    y m with m ℕP.<? n
-    ... | .Bool.true because ofʸ m<n  = proj₁ (f (fromℕ< m<n))
-    ... | .Bool.false because ofⁿ m≥n = 0ℝ
-
-    {-
-    
-    -}
 
     z : ℕ → ℝ
     z m = t m (m ℕP.<? n)
@@ -661,26 +649,21 @@ totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x
         t m (.Bool.true because ofʸ m<n)  = proj₁ (f (fromℕ< m<n))
         t m (.Bool.false because ofⁿ m≥n) = 0ℝ
 
+    ≤-same : {m m' : ℕ} → (p p' : m ℕ.≤ m') → p ≡ p'
+    ≤-same {.zero} {_} ℕ.z≤n ℕ.z≤n = refl
+    ≤-same {.suc _} {.suc _} (ℕ.s≤s p) (ℕ.s≤s p') = cong ℕ.s≤s (≤-same p p')
+
     zₖ-wellDef : (m : ℕ) → (m<n : m ℕ.< n) → z m ≃ proj₁ (f (fromℕ< m<n))
     zₖ-wellDef m m<n with m ℕ.<? n
-    ... | .Bool.true because ofʸ p   = {!!}
-    ... | .Bool.false because ofⁿ ¬p = {!!}
+    zₖ-wellDef m m<n | .Bool.true because ofʸ p with ≤-same m<n p
+    ...                                        | refl = ≃-refl₂ refl
+    zₖ-wellDef m m<n | .Bool.false because ofⁿ ¬p = ⊥-elim (¬p m<n)
 
     M : ℝ
-    M = max y (ℕ.pred n)
+    M = max z n-1
 
-    {-lem : P isBoundedAboveBy (1ℝ + M)
-    lem x∈P = {!!}
-      where
-        x = proj₁ x∈P
-        k<n = proj₁ (proj₂ (proj₂ PT-get) x∈P)
-        k = proj₁ k<n
-        yₖ = proj₁ (proj₁ (proj₂ PT-get) (fromℕ< (proj₂ k<n)))-}
-
-        {-yₖ-wellDef : yₖ ≡ y k
-        yₖ-wellDef with k ℕP.<? n
-        ... | .Bool.true because ofʸ p = {!!}
-        ... | .Bool.false because ofⁿ ¬p = {!!}-}
+    k<n⇒k≤n-1 : ∀ {k : ℕ} → k ℕ.< n → k ℕ.≤ n-1
+    k<n⇒k≤n-1 (ℕ.s≤s uneq) = uneq
 
 {-
 Choose a₁,...,aₙ∈A such that for each a∈A at least
@@ -735,9 +718,16 @@ Let M = max{a₁,...,aₙ}. Then there is aₖ such that aₖ > M - α. Either x
               a ≤ aᵢ + ∣a - aᵢ∣ < aₖ + α + α < x + 4α = y,
 so y is an upper bound of A. Thus supA exists by Proposition 4.3                                                       □
 -}
-corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → (P hasSupremum)
-corollary-4-4-supremum {P} PT = fast-proposition-4-3-if {!!} {!!} {!!}
+corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasSupremum
+corollary-4-4-supremum {P} PT = fast-proposition-4-3-if {!!} (totallyBounded⇒boundedAbove PT) mainPart
   where
+  mainPart : {x y : ℝ} → x < y → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+  mainPart {x} {y} x<y = {!!}
+    where
+
+    α : ℝ
+    α = ((+ 1 ℚ./ 4) ⋆) * (y - x)
+    
     
 
 corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
