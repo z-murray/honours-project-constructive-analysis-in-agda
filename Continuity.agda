@@ -573,14 +573,35 @@ maxFin : {n-1 : ℕ} → (f : Fin (suc n-1) → ℝ) → ℝ
 maxFin {zero} f    = f (fromℕ 0)
 maxFin {suc n-1} f = maxFin (λ (x : Fin (suc n-1)) → f (inject₁ x)) ⊔ f (fromℕ (suc n-1))
 
-{-
-
--}
 m≤n⇒fm≤maxFinf : {m n : ℕ} (f : Fin (suc n) → ℝ) → (m≤n : m ℕ.≤ n) → f (fromℕ< (ℕ.s≤s m≤n)) ≤ maxFin f  
 m≤n⇒fm≤maxFinf {zero} {zero} f m≤n = ≤-refl
 m≤n⇒fm≤maxFinf {zero} {suc n} f m≤n = ≤-trans (m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) ℕ.z≤n) (x≤x⊔y _ _)
 m≤n⇒fm≤maxFinf {suc m} {zero} f ()
 m≤n⇒fm≤maxFinf {suc m} {suc n} f (ℕ.s≤s m≤n) = {!m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) m≤n!}
+
+--based on Nuprl proof at https://www.nuprl.org/LibrarySnapshots/Published/Version1/Mathematics/reals/rmaximum-select_proof_1_2_1_1.html
+maxSelect : ∀ (f : ℕ → ℝ) (n : ℕ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → max f n - ε < f i)
+maxSelect f zero ε ε>0 = zero , {!!}
+maxSelect f (suc n) ε ε>0 = [ case₁ , case₂ ]′ eitheror
+  where
+  v : ℝ
+  v = max f n
+  prevproof : ∃ (λ i → v - ε < f i)
+  prevproof = maxSelect f n ε ε>0
+  i : ℕ
+  i = proj₁ prevproof
+
+  eitheror = fast-corollary-2-17 (f (suc n) - f i) 0ℝ ε ε>0
+
+  case₁ : f (suc n) - f i < ε →
+      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
+  case₁ hyp = i , {!x<z∧y<z⇒x⊔y<z v (f (suc n)) (f i + ε) ? ?!}
+  case₂ : f (suc n) - f i > 0ℝ →
+      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
+  case₂ hyp = suc n , {!!}
+
+maxFinSelect : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → maxFin f - ε < f i)
+maxFinSelect {n} f ε ε>0 = {!maxSelect (λ k → !}
 
 {-
 F : Fin 3 → ℝ
@@ -717,18 +738,43 @@ Let x < y and set α = ¼(y - x). Choose a₁,...,aₙ∈A such that for each a�
 Let M = max{a₁,...,aₙ}. Then there is aₖ such that aₖ > M - α. Either x < aₖ or aₖ < x + 2α. In the latter case, we have
               a ≤ aᵢ + ∣a - aᵢ∣ < aₖ + α + α < x + 4α = y,
 so y is an upper bound of A. Thus supA exists by Proposition 4.3                                                       □
--}
+-}    
+
 corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasSupremum
 corollary-4-4-supremum {P} PT = fast-proposition-4-3-if {!!} (totallyBounded⇒boundedAbove PT) mainPart
   where
   mainPart : {x y : ℝ} → x < y → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
-  mainPart {x} {y} x<y = {!!}
+  mainPart {x} {y} x<y = [ part1 , part2 ]′ eitheror
     where
 
-    α : ℝ
+    α x+2α : ℝ
     α = ((+ 1 ℚ./ 4) ⋆) * (y - x)
-    
-    
+    x+2α = (x + (+ 2 ℚ./ 1) ⋆ * α)
+
+    pack = PT α (0<x,y⇒0<x*y {(+ 1 ℚ./ 4) ⋆} {y - x} (fast-p<q⇒p⋆<q⋆ 0ℚᵘ (+ 1 ℚ./ 4) (ℚ.*<* _)) (x<y⇒0<y-x x y x<y))
+    N-1 N : ℕ
+    N-1 = proj₁ pack
+    N = suc N-1
+    as : Fin (suc N-1) → 𝕊 P
+    as = proj₁ (proj₂ pack)
+    proofforas : (X : 𝕊 P) → ∃ (λ (k : Σ ℕ (λ k → k ℕ.< N)) →  ∣ proj₁ X - proj₁ (as (fromℕ< (proj₂ k))) ∣ < α)
+    proofforas = proj₂ (proj₂ pack)
+
+    --here we need the maximum as 𝕊 P
+    ∃n : ∃ (λ n → proj₁ (as n) > maxFin (λ k → proj₁ (as k)) - α)
+    ∃n = fromℕ< (proj₂ (proj₁ (proofforas {!!}))) , {!!}
+    n : Fin (suc N-1)
+    n = proj₁ ∃n
+    an : ℝ
+    an = proj₁ (as n)
+
+    eitheror : an < x+2α ⊎ an > x
+    eitheror = fast-corollary-2-17 an x x+2α {!!}
+
+    part1 : an < x+2α → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+    part1 an<x+2α = inj₁ λ (a , pa) → {!!}
+    part2 : an > x → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+    part2 an>x = inj₂ (an , proj₂ (as n) , an>x)
 
 corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
 corollary-4-4-infimum {P} PT = {!!}
