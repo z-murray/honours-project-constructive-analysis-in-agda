@@ -1063,9 +1063,31 @@ x ≃ₛ y = proj₁ x ≃ proj₁ y
 
 record CompactInterval : Set where
   field
-    lower    : ℝ
-    upper    : ℝ
-    nonempty : Interval ⟦ lower , upper ⟧
+    CIlower            : ℝ
+    CIupper            : ℝ
+    CIlower≤upper      : CIlower ≤ CIupper  -- for some reason, it wants to figure out what this can be at isContinuousOnD and becomes yellow
+open CompactInterval
+
+_↓ : CompactInterval → Set
+_↓ D = Interval ⟦ CIlower D , CIupper D ⟧
+
+CINonempty : (D : CompactInterval) → D ↓
+CINonempty D = CIlower D , {!!}
+
+{-
+CompactInterval : ℝ → ℝ → Set
+CompactInterval = _≤_
+
+lower upper : {x y : ℝ} → CompactInterval x y → ℝ
+lower {x} {_} _ = x
+upper {_} {y} _ = y
+
+_↓ : {x y : ℝ} → CompactInterval x y → Set
+_↓ {x} {y} _ = Interval ⟦ x , y ⟧
+
+CINonempty : {x y : ℝ} (CI : CompactInterval x y) → CI ↓
+CINonempty {x} {y} CI = x , {!!}
+-}
 
 open import Function.Bundles using (Func)
 
@@ -1075,8 +1097,8 @@ P ⟶ Q = Func 𝕊[ P ] 𝕊[ Q ]
 _⟶ℝ : Pred ℝ 0ℓ → Set
 P ⟶ℝ = Func 𝕊[ P ] ≃-setoid
 
-testing : {!!}
-testing = (x : ℝ) → let T = x in {!!}
+-- testing : {!!}
+-- testing = (x : ℝ) → let T = x in {!!}
 
 {-
 f : [a , b] → ℝ
@@ -1088,6 +1110,7 @@ f : Func (𝕊[ P ]) ≃-setoid
 
 
 -}
+
 data _isContinuousAt_ {P : Pred ℝ 0ℓ} (F : P ⟶ℝ) (x : 𝕊 P) : Set where
   cont* : ((ε : ℝ⁺) → ∃ λ (δ : ℝ⁺) → (y : 𝕊 P) → ∣ {!!} ∣ < (proj₁ δ) → {!!}) → F isContinuousAt x
 
@@ -1109,5 +1132,192 @@ A function f : [a,b] → ℝ is continuous if for each ε > 0 there exists ω(ε
 Why not make a function continuous at a point and then extend that to continuity on subsets of ℝ
 instead of focusing on intervals? We can use intervals for differentiation later on instead.
 -}
-data _isContinuousOn_ : Set where
-  --cont* :
+
+-- The interval has to be an explicit parameter; otherwise it cannot figure out
+-- from the function what the interval was.
+data continuousOnCI : (D : CompactInterval) (f : D ↓ → ℝ) → Set where
+  contOn* : {D : CompactInterval} {f : D ↓ → ℝ} →
+            (∃ λ (ω : ℝ⁺ → ℝ⁺) → ∀ (ε : ℝ⁺) (x y : D ↓) → ∣ proj₁ x - proj₁ y ∣ ≤ proj₁ (ω ε) → ∣ f x - f y ∣ ≤ proj₁ ε)
+              → continuousOnCI D f
+-- Unfortunately, the syntax becomes a bit inconvenient.
+
+{-
+-- this would also need D as an explicit parameter
+_isContinuousOnCI : {D : CompactInterval} (f : D ↓ → ℝ) → Set
+_isContinuousOnCI {D} f = continuousOnCI D f
+-}
+
+modCon : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (ℝ⁺ → ℝ⁺)
+modCon (contOn* (ω , _)) = ω 
+
+constIsContinuous : ∀ (c : ℝ) (D : CompactInterval) → continuousOnCI D (λ (x : D ↓) → c)
+constIsContinuous c D = contOn* ((λ ε → 1ℝ , 0<1) , λ ε x y ∣x-y∣≤1 → begin
+    ∣ c - c ∣ ≈⟨ ∣-∣-cong {c - c} {0ℝ} (solve 1 (λ c → c ⊖ c ⊜ Κ 0ℚᵘ) ≃-refl c) ⟩
+    ∣ 0ℝ ∣    ≈⟨ 0≤x⇒∣x∣≃x ≤-refl ⟩
+    0ℝ      ≤⟨ <⇒≤ (proj₂ ε) ⟩
+    proj₁ ε ∎)
+  where open ≤-Reasoning
+
+idIsContinuous : ∀ (D : CompactInterval) → continuousOnCI D (λ (x : D ↓) → proj₁ x)
+idIsContinuous D = contOn* ((λ ε → ε) , λ ε x y ∣x-y∣≤ε → ∣x-y∣≤ε)
+
+inRangeOf : {A : Set} (f : A → ℝ) → (ℝ → Set)
+inRangeOf f = λ y → ∃ λ x → f x ≃ y
+
+--A partition of a compact interval to n equally sized subintervals. Returns the (suc n) separators.
+fullPartition : (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → (Fin (suc n) → D ↓)
+fullPartition D (suc n-1) i = CIlower D + (+ (toℕ i) / n) ⋆ * (CIupper D - CIlower D) ,
+                                                  0≤x⇒y≤y+x a (0≤x,y⇒0≤x*y (nonNegx⇒0≤x (nonNegp⇒nonNegp⋆ (+ (toℕ i) / n) tt)) d≥0) ,
+                                                  (begin
+                                                  a + (+ (toℕ i) / n) ⋆ * d     ≤⟨ +-monoʳ-≤ a (*-monoʳ-≤-nonNeg {(+ (toℕ i) / n) ⋆} {d} {(+ n / n) ⋆}
+                                                                                               (p≤q⇒p⋆≤q⋆ (+ (toℕ i) / n) (+ n / n) (p≤q⇒p/r≤q/r (+ (toℕ i)) (+ n) n (ℤ.+≤+ (ℕ.≤-pred (FinP.toℕ<n i)))))
+                                                                                               (0≤x⇒nonNegx d≥0)) ⟩
+                                                  a + (+ n       / n) ⋆ * d     ≈⟨ +-congʳ a (*-congʳ {d} (⋆-cong (ℚ.*≡* (cong +[1+_] (trans (ℕP.*-identityʳ n-1) (sym (ℕP.+-identityʳ n-1))))))) ⟩
+                                                  a +                1ℝ * d     ≈⟨ solve 2 (λ a b → a ⊕ Κ 1ℚᵘ ⊗ (b ⊖ a) ⊜ b) ≃-refl a b ⟩
+                                                  b                             ∎)
+  where
+  open ≤-Reasoning
+  n : ℕ
+  n = suc n-1
+  a b d : ℝ
+  a = CIlower D ; b = CIupper D ; d = b - a
+
+  d≥0 : d ≥ 0ℝ
+  d≥0 = begin
+     0ℝ     ≈⟨ solve 1 (λ a → Κ 0ℚᵘ ⊜ a ⊖ a) ≃-refl a ⟩
+     a - a  ≤⟨ +-monoˡ-≤ (- a) (CIlower≤upper D) ⟩
+     b - a  ∎
+
+fullPartition-a₀≃a : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → proj₁ (fullPartition D n {n≢0} Fin.zero) ≃ CIlower D
+fullPartition-a₀≃a D (suc n-1) = begin
+    CIlower D + mkℚᵘ +0 n-1 ⋆ * (CIupper D - CIlower D)    ≈⟨ {!!} ⟩
+    CIlower D +            0ℝ * (CIupper D - CIlower D)   ≈⟨ +-congʳ (CIlower D) (*-zeroˡ (CIupper D - CIlower D)) ⟩
+    CIlower D + 0ℝ                                        ≈⟨ +-identityʳ (CIlower D) ⟩
+    CIlower D                                             ∎
+  where open ≃-Reasoning
+
+fullPartition-[x-aᵢ]<d/n : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} (x : D ↓) →
+                           ∃ (λ (i : Fin (suc n)) → (proj₁ x - proj₁ (fullPartition D n {n≢0} i)) ≤ ((+ 1 / n) {n≢0}) ⋆ * (CIupper D - CIlower D))
+fullPartition-[x-aᵢ]<d/n D (suc zero) x = Fin.zero , (begin
+    proj₁ x - proj₁ (fullPartition D (suc zero) Fin.zero) ≈⟨ {!!} ⟩
+    proj₁ x - a                                           ≤⟨ {!!} ⟩
+    b - a                                                 ≈⟨ {!!} ⟩
+    (+ 1 / 1) ⋆ * (b - a)                                 ∎)
+  where
+  open ≤-Reasoning
+  a b : ℝ
+  a = CIlower D ; b = CIupper D
+fullPartition-[x-aᵢ]<d/n D (suc (suc n-1)) x = {!!}
+  where
+  n : ℕ
+  n = suc n-1
+  as : Fin (suc (suc n)) → D ↓
+  as = fullPartition D (suc n)
+  aₙ₋₁ aₙ : D ↓
+  aₙ₋₁ = as (fromℕ< {n-1} {!!})
+  aₙ = as (fromℕ< {n} {!!})
+  eitheror : proj₁ x < proj₁ aₙ ⊎ proj₁ x > proj₁ aₙ₋₁
+  eitheror = fast-corollary-2-17 (proj₁ x) (proj₁ aₙ₋₁) (proj₁ aₙ) {!!}
+
+  a b d : ℝ
+  a = CIlower D ; b = CIupper D ; d = b - a
+
+  {-
+  Let l:=(b-a)/(n+1). Then
+  (aₙ-a)/n=(a+(n*l)-a)/n=n*l/n=l.
+  -}
+  lem : (+ 1 / n) ⋆ * (proj₁ aₙ - a) ≃ (+ 1 / (suc n)) ⋆ * (b - a)
+  lem = begin
+        (+ 1 / n) ⋆ * (proj₁ aₙ - a)                         ≈⟨ *-congˡ {(+ 1 / n) ⋆} {proj₁ aₙ - a} {a + (+ n / (suc n)) ⋆ * (b - a) - a}
+                                                                         (+-congˡ (- a) (+-congʳ a (≃-refl₂ (cong (λ i → mkℚᵘ +[1+ i ] (suc n-1) ⋆ * (b - a)) (FinP.toℕ-fromℕ< {n-1} {suc n} {!!}))))) ⟩
+        (+ 1 / n) ⋆ * (a + (+ n / (suc n)) ⋆ * (b - a) - a)  ≈⟨ *-congˡ {(+ 1 / n) ⋆} {a + (+ n / (suc n)) ⋆ * (b - a) - a} {(+ n / (suc n)) ⋆ * (b - a)}
+                                                                         (solve 2 (λ a t → a ⊕ t ⊖ a ⊜ t) ≃-refl a ((+ n / (suc n)) ⋆ * (b - a))) ⟩
+        (+ 1 / n) ⋆ * ((+ n / (suc n)) ⋆ * (b - a))          ≈⟨ ≃-symm (*-assoc ((+ 1 / n) ⋆) ((+ n / (suc n)) ⋆) (b - a)) ⟩
+        (+ 1 / n) ⋆ * (+ n / (suc n)) ⋆ * (b - a)            ≈⟨ *-congʳ {b - a} (≃-trans (≃-symm (⋆-distrib-* (+ 1 / n) (+ n / suc n))) (⋆-cong (ℚ.*≡* (cong (λ k → +[1+ suc k ]) {!!})))) ⟩
+        (+ 1 / (suc n)) ⋆ * (b - a)                          ∎
+    where
+    open ≃-Reasoning
+
+  part₁ : proj₁ x < proj₁ aₙ → ∃ (λ (i : Fin (suc (suc n))) → (proj₁ x - proj₁ (as i)) ≤ (+ 1 / (suc n)) ⋆ * (b - a))
+  part₁ x<aₙ = inject₁ (proj₁ induction), {!begin
+      proj₁ x - (a + ((+ toℕ (inject₁ (proj₁ induction))) / (suc n)) ⋆ * (b - a))    ≈⟨ ? ⟩
+      proj₁ x - (a + (+ i / (suc n)) ⋆ * (b - a))                              ≈⟨ ? ⟩
+      proj₁ x - (a + (+ i / 1) ⋆ * ((+ 1 / (suc n)) ⋆ * (b - a)))              ≈⟨ ? ⟩
+      proj₁ x - (a + (+ i / 1) ⋆ * ((+ 1 / n) ⋆ * (proj₁ aₙ - a)))             ≈⟨ ? ⟩
+      proj₁ x - (a + (+ i / n) ⋆ * (proj₁ aₙ - a))                             ≤⟨ ? ⟩
+      (+ 1 / n) ⋆ * (proj₁ aₙ - a)                                             ≈⟨ ? ⟩
+      (+ 1 / (suc n)) ⋆ * (b - a)                                              ∎
+      !}
+    where
+    open ≤-Reasoning
+    D' : CompactInterval
+    CIlower D' = a
+    CIupper D' = proj₁ aₙ
+    CIlower≤upper D' = {!!}
+
+    x' : D' ↓
+    proj₁ x' = proj₁ x
+    proj₂ x' = {!!}
+
+    induction : ∃ (λ (i : Fin (suc n)) → proj₁ x - (a + (+ (toℕ i) / n) ⋆ * (proj₁ aₙ - a)) ≤ (+ 1 / n) ⋆ * (proj₁ aₙ - a))
+    induction = {!fullPartition-[x-aᵢ]<d/n D' n x'!} --this hangs
+    i : ℕ
+    i = toℕ (proj₁ induction)
+
+CIisTotallyBounded : (D : CompactInterval) → IntervalPred ⟦ CIlower D , CIupper D ⟧ isTotallyBounded
+CIisTotallyBounded D ε ε>0 = {!!}
+
+contOnD⇒totallyBounded : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f →
+    inRangeOf f isTotallyBounded
+contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) 2ε 2ε>0 = n , fas𝕊 , {!!} --it hangs
+  where
+  ε : ℝ --have to took 2ε because isTotallyBounded expects strict <
+  ε = 2ε * (+ 1 / 2) ⋆
+  ε⁺ ωε : ℝ⁺
+  ε⁺ = ε , {!!}
+  ωε = ω ε⁺
+  a b : ℝ
+  a = CIlower D
+  b = CIupper D
+  arch : ∃ (λ n-1 → (+[1+ n-1 ] / 1) ⋆ > (b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)))
+  arch = fast-archimedean-ℝ ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)))
+  n-1 n : ℕ
+  n-1 = proj₁ arch
+  n = suc n-1
+
+  d : ℝ
+  d = (b - a) * (+ 1 / n) ⋆
+  d>0 : d > 0ℝ
+  d>0 = {!!}
+  as : Fin (suc n) → D ↓
+  as = fullPartition D n
+  fas𝕊 : Fin (suc n) → 𝕊 (inRangeOf f)
+  fas𝕊 i = f (as i) , as i , ≃-refl
+
+  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (k : Σ ℕ (λ k → k ℕ.< suc n)) → ∣ proj₁ y - proj₁ (fas𝕊 (fromℕ< (proj₂ k))) ∣ < 2ε)
+  mainPart (y , x , fx≃y) = (i , i<sucn) , {!begin-strict
+          ∣ y - proj₁ (fas𝕊 iFin) ∣              ≈⟨ ? ⟩
+          ∣ f x - f (as iFin) ∣                  ≤⟨ {!hyp ε⁺ x (as iFin) ?!} ⟩
+          ε                                     <⟨ ? ⟩
+          2ε                                    ∎!} --this hangs too
+    where
+    open ≤-Reasoning
+    {-
+      aᵢ > x
+      a + (i+1) * d > x
+      (i+1) * d > x - a
+      (i+1) > (x - a) / d
+    -}
+    arch₂ : ∃ (λ i → (+[1+ i ] / 1) ⋆ > (proj₁ x - a) * (_⁻¹ d (inj₂ d>0)))
+    arch₂ = fast-archimedean-ℝ ((proj₁ x - a) * (_⁻¹ d (inj₂ d>0)))
+    i : ℕ
+    i = proj₁ arch₂
+    i<sucn : i ℕ.< suc n
+    i<sucn = {!!}
+    iFin : Fin (suc n)
+    iFin = fromℕ< {i} i<sucn
+    
+weakWeierstrass-sup : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f →
+    inRangeOf f hasSupremum
+weakWeierstrass-sup {D} {f} fcont = {!!}
+
