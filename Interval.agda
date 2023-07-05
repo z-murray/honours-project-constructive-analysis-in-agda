@@ -244,6 +244,7 @@ private
 
 
 --A partition of a compact interval to n equally sized subintervals. Returns the (suc n) separators.
+--Maybe we should change the parameter to a sigma index for the sake of consistency.
 
 fullPartitionℕ : (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → {i : ℕ} → i ℕ.≤ n → D ↓
 fullPartitionℕ D (suc n-1) {_} {i} i≤n = let n = suc n-1 ; a = CIlower D ; b = CIupper D in

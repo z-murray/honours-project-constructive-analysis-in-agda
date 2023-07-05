@@ -509,56 +509,6 @@ Probably don't need this
 -- Fin2 : ℕ → Set
 -- Fin2 n-1 = Σ ℕ (λ k → k ℕ.≤ n-1)
 
--- A maximum for finite sequences given by sigma indices.
--- For easier proofs, f₀ is ⊔-ed to the rest.
-maxΣ : {n-1 : ℕ} → (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ) → ℝ
-maxΣ {zero} f = f (0 , ℕ.z≤n)
-maxΣ {suc n-2} f = f (0 , ℕ.z≤n) ⊔ maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2)
-
-m≤n-1⇒fm≤maxΣf : {n-1 : ℕ} → (f : (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ)) →
-         (m : Σ ℕ (λ m → m ℕ.≤ n-1)) → f m ≤ maxΣ f
-m≤n-1⇒fm≤maxΣf {zero} f (.zero , ℕ.z≤n) = ≤-refl
-m≤n-1⇒fm≤maxΣf {suc n-2} f (zero , ℕ.z≤n) = x≤x⊔y (f (zero , ℕ.z≤n)) (maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2))
-m≤n-1⇒fm≤maxΣf {suc n-2} f (suc m-1 , ℕ.s≤s m-1≤n-2) = let ftail = λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2) in
-                                           ≤-trans (m≤n-1⇒fm≤maxΣf {n-2} ftail (m-1 , m-1≤n-2)) (x≤y⊔x ((maxΣ {n-2} ftail)) (f (zero , ℕ.z≤n)))
-
-maxFin : {n-1 : ℕ} → (f : Fin (suc n-1) → ℝ) → ℝ
-maxFin {zero} f    = f (fromℕ 0)
-maxFin {suc n-1} f = maxFin (λ (x : Fin (suc n-1)) → f (inject₁ x)) ⊔ f (fromℕ (suc n-1))
-
-maxFin≃f0⊔rest : {k : ℕ} (g : Fin (suc (suc k)) → ℝ) → maxFin g ≃ g Fin.zero ⊔ maxFin (λ x → g (Fin.suc x))
-maxFin≃f0⊔rest {zero} g = ≃-refl
-maxFin≃f0⊔rest {suc k} g = begin
-    maxFin (λ x → g (inject₁ (inject₁ x))) ⊔
-      g (Fin.suc (inject₁ (fromℕ k)))
-      ⊔ g (Fin.suc (Fin.suc (fromℕ k)))          ≈⟨ ⊔-congʳ {g (Fin.suc (Fin.suc (fromℕ k)))} (maxFin≃f0⊔rest (λ x → g (inject₁ x))) ⟩
-    g Fin.zero ⊔
-      maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
-       g (Fin.suc (Fin.suc (fromℕ k)))           ≈⟨ ⊔-assoc (g Fin.zero) (maxFin (λ x → g (Fin.suc (inject₁ x)))) (g (Fin.suc (Fin.suc (fromℕ k)))) ⟩
-    g Fin.zero ⊔
-      (maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
-       g (Fin.suc (Fin.suc (fromℕ k))))          ∎
-  where open ≃-Reasoning
-
-m≤n⇒fm≤maxFinf : {m n : ℕ} (f : Fin (suc n) → ℝ) → (m<sucn : m ℕ.< (suc n)) → f (fromℕ< m<sucn) ≤ maxFin f  
-m≤n⇒fm≤maxFinf {zero} {zero} f m<sucn = ≤-refl
-m≤n⇒fm≤maxFinf {zero} {suc n} f m<sucn = ≤-trans (m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) (ℕ.s≤s ℕ.z≤n)) (x≤x⊔y _ _)
-m≤n⇒fm≤maxFinf {suc zero} {zero} f (ℕ.s≤s ())
-m≤n⇒fm≤maxFinf {suc m} {suc n} f (ℕ.s≤s m<sucn) = begin
-           f (Fin.suc (fromℕ< m<sucn))             ≤⟨ m≤n⇒fm≤maxFinf (λ x → f (Fin.suc x)) m<sucn ⟩
-           maxFin (λ x → f (Fin.suc x))                 ≤⟨ x≤y⊔x (maxFin (λ x → f (Fin.suc x))) (f Fin.zero)  ⟩
-           f Fin.zero ⊔ maxFin (λ x → f (Fin.suc x))    ≈⟨ ≃-symm (maxFin≃f0⊔rest f) ⟩
-           maxFin f                                      ∎
-  where open ≤-Reasoning
-
-mFinsn⇒fm≤maxFinf : {n : ℕ} (f : Fin (suc n) → ℝ) (m : Fin (suc n)) → f m ≤ maxFin f
-mFinsn⇒fm≤maxFinf {zero} f Fin.zero = ≤-refl
-mFinsn⇒fm≤maxFinf {suc n} f m = begin
-    f m                                   ≈⟨ ≃-refl₂ (cong f (sym (FinP.fromℕ<-toℕ m (FinP.toℕ<n m)))) ⟩
-    f (fromℕ< {toℕ m} (FinP.toℕ<n m))    ≤⟨ m≤n⇒fm≤maxFinf {toℕ m} {suc n} f (FinP.toℕ<n m) ⟩
-    maxFin f                 ∎
-  where open ≤-Reasoning
-
 --into RealProperties?
 a-b<c⇒a<c+b : ∀ {a b c : ℝ} → a - b < c → a < c + b
 a-b<c⇒a<c+b {a} {b} {c} hyp = begin-strict
@@ -589,6 +539,7 @@ a-b<c⇒a<b+c {a} {b} {c} hyp = begin-strict
   where open ≤-Reasoning
 
 --based on Nuprl proof at https://www.nuprl.org/LibrarySnapshots/Published/Version1/Mathematics/reals/rmaximum-select_proof_1_2_1_1.html
+--maybe to ExtraProperties?
 maxSelect : ∀ (f : ℕ → ℝ) (n : ℕ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → max f n - ε < f i)
 maxSelect f zero ε ε>0 = zero , (begin-strict
     f 0 - ε       <⟨ 0<ε⇒x<x+ε (f 0 - ε) ε>0 ⟩
@@ -628,7 +579,107 @@ maxSelect f (suc n) ε ε>0 = [ case₁ , case₂ ]′ eitheror
           f i + ε        <⟨ +-monoˡ-< ε (0<y-x⇒x<y (f i) (f (suc n)) hyp) ⟩
           f (suc n) + ε  ∎
 
---to ExtraProperties?
+-- A maximum for finite sequences given by sigma indices.
+-- For easier proofs, f₀ is ⊔-ed to the rest.
+maxΣ : {n-1 : ℕ} → (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ) → ℝ
+maxΣ {zero} f = f (0 , ℕ.z≤n)
+maxΣ {suc n-2} f = f (0 , ℕ.z≤n) ⊔ maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2)
+
+m≤n-1⇒fm≤maxΣf : {n-1 : ℕ} → (f : (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ)) →
+         (m : Σ ℕ (λ m → m ℕ.≤ n-1)) → f m ≤ maxΣ f
+m≤n-1⇒fm≤maxΣf {zero} f (.zero , ℕ.z≤n) = ≤-refl
+m≤n-1⇒fm≤maxΣf {suc n-2} f (zero , ℕ.z≤n) = x≤x⊔y (f (zero , ℕ.z≤n)) (maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2))
+m≤n-1⇒fm≤maxΣf {suc n-2} f (suc m-1 , ℕ.s≤s m-1≤n-2) = let ftail = λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2) in
+                                           ≤-trans (m≤n-1⇒fm≤maxΣf {n-2} ftail (m-1 , m-1≤n-2)) (x≤y⊔x ((maxΣ {n-2} ftail)) (f (zero , ℕ.z≤n)))
+
+-- A version of maxSelect for sigma indices.
+maxΣSelect : ∀ {n-1 : ℕ} (f : (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ)) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → maxΣ f - ε < f i)
+maxΣSelect {zero}    f ε ε>0 = (zero , ℕ.z≤n) , 0<ε⇒x-ε<x {ε} (f (0 , ℕ.z≤n)) ε>0
+maxΣSelect {suc n-1} f ε ε>0 = [ case₁ , case₂ ]′ eitheror
+  where
+  n : ℕ
+  n = suc n-1
+  prevf : Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ
+  prevf = λ (k , k≤n-1) → f (suc k , ℕ.s≤s k≤n-1)
+  v : ℝ
+  v = maxΣ prevf
+  prevproof : ∃ (λ i-1 → v - ε < prevf i-1)       --the index from the induction hypothesis
+  prevproof = maxΣSelect prevf ε ε>0
+
+  i : ℕ
+  i = suc (proj₁ (proj₁ prevproof))
+  iΣ : Σ ℕ (λ k → k ℕ.≤ n)
+  iΣ = i , ℕ.s≤s (proj₂ (proj₁ prevproof))
+
+  -- Agda deduces this by itself
+  -- fiΣ≃prevf[i-1Σ] : f iΣ ≃ prevf (proj₁ prevproof)
+  -- fiΣ≃prevf[i-1Σ] = ≃-refl
+
+  --here we have to take the first element separately, not the last one
+  0Σ : Σ ℕ (λ k → k ℕ.≤ n)
+  0Σ = 0 , ℕ.z≤n
+
+  eitheror : f 0Σ - f iΣ < ε ⊎ f 0Σ - f iΣ > 0ℝ
+  eitheror = fast-corollary-2-17 (f 0Σ - f iΣ) 0ℝ ε ε>0
+
+  case₁ : f 0Σ - f iΣ < ε →
+      ∃ (λ i₁ → f 0Σ ⊔ v - ε < f i₁)
+  case₁ hyp = iΣ , (begin-strict
+         f 0Σ ⊔ v - ε            <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z (f 0Σ) v (f iΣ + ε) ((a-b<c⇒a<b+c hyp)) ((a-b<c⇒a<c+b (proj₂ prevproof)))) ⟩
+         f iΣ + ε - ε            ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f iΣ) ε ⟩
+         f iΣ                    ∎ )
+    where open ≤-Reasoning
+
+  case₂ : f 0Σ - f iΣ > 0ℝ →
+      ∃ (λ i₁ → f 0Σ ⊔ v - ε < f i₁)
+  case₂ hyp = 0Σ , (begin-strict
+         f 0Σ ⊔ v - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z (f 0Σ) v (f 0Σ + ε) ((0<ε⇒x<x+ε (f 0Σ) ε>0)) lem) ⟩
+         f 0Σ + ε - ε      ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f 0Σ) ε ⟩
+         f 0Σ              ∎)
+    where
+      open ≤-Reasoning
+      lem : v < f 0Σ + ε
+      lem = begin-strict
+          v              <⟨ a-b<c⇒a<c+b (proj₂ prevproof) ⟩
+          f iΣ + ε        <⟨ +-monoˡ-< ε (0<y-x⇒x<y (f iΣ) (f 0Σ) hyp) ⟩
+          f 0Σ + ε  ∎
+
+maxFin : {n-1 : ℕ} → (f : Fin (suc n-1) → ℝ) → ℝ
+maxFin {zero} f    = f (fromℕ 0)
+maxFin {suc n-1} f = maxFin (λ (x : Fin (suc n-1)) → f (inject₁ x)) ⊔ f (fromℕ (suc n-1))
+
+maxFin≃f0⊔rest : {k : ℕ} (g : Fin (suc (suc k)) → ℝ) → maxFin g ≃ g Fin.zero ⊔ maxFin (λ x → g (Fin.suc x))
+maxFin≃f0⊔rest {zero} g = ≃-refl
+maxFin≃f0⊔rest {suc k} g = begin
+    maxFin (λ x → g (inject₁ (inject₁ x))) ⊔
+      g (Fin.suc (inject₁ (fromℕ k)))
+      ⊔ g (Fin.suc (Fin.suc (fromℕ k)))          ≈⟨ ⊔-congʳ {g (Fin.suc (Fin.suc (fromℕ k)))} (maxFin≃f0⊔rest (λ x → g (inject₁ x))) ⟩
+    g Fin.zero ⊔
+      maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
+       g (Fin.suc (Fin.suc (fromℕ k)))           ≈⟨ ⊔-assoc (g Fin.zero) (maxFin (λ x → g (Fin.suc (inject₁ x)))) (g (Fin.suc (Fin.suc (fromℕ k)))) ⟩
+    g Fin.zero ⊔
+      (maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
+       g (Fin.suc (Fin.suc (fromℕ k))))          ∎
+  where open ≃-Reasoning
+
+m≤n⇒fm≤maxFinf : {m n : ℕ} (f : Fin (suc n) → ℝ) → (m<sucn : m ℕ.< (suc n)) → f (fromℕ< m<sucn) ≤ maxFin f  
+m≤n⇒fm≤maxFinf {zero} {zero} f m<sucn = ≤-refl
+m≤n⇒fm≤maxFinf {zero} {suc n} f m<sucn = ≤-trans (m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) (ℕ.s≤s ℕ.z≤n)) (x≤x⊔y _ _)
+m≤n⇒fm≤maxFinf {suc zero} {zero} f (ℕ.s≤s ())
+m≤n⇒fm≤maxFinf {suc m} {suc n} f (ℕ.s≤s m<sucn) = begin
+           f (Fin.suc (fromℕ< m<sucn))             ≤⟨ m≤n⇒fm≤maxFinf (λ x → f (Fin.suc x)) m<sucn ⟩
+           maxFin (λ x → f (Fin.suc x))                 ≤⟨ x≤y⊔x (maxFin (λ x → f (Fin.suc x))) (f Fin.zero)  ⟩
+           f Fin.zero ⊔ maxFin (λ x → f (Fin.suc x))    ≈⟨ ≃-symm (maxFin≃f0⊔rest f) ⟩
+           maxFin f                                      ∎
+  where open ≤-Reasoning
+
+mFinsn⇒fm≤maxFinf : {n : ℕ} (f : Fin (suc n) → ℝ) (m : Fin (suc n)) → f m ≤ maxFin f
+mFinsn⇒fm≤maxFinf {zero} f Fin.zero = ≤-refl
+mFinsn⇒fm≤maxFinf {suc n} f m = begin
+    f m                                   ≈⟨ ≃-refl₂ (cong f (sym (FinP.fromℕ<-toℕ m (FinP.toℕ<n m)))) ⟩
+    f (fromℕ< {toℕ m} (FinP.toℕ<n m))    ≤⟨ m≤n⇒fm≤maxFinf {toℕ m} {suc n} f (FinP.toℕ<n m) ⟩
+    maxFin f                 ∎
+  where open ≤-Reasoning
 
 finTrunc : ∀ {i} {A : Set i} {n : ℕ} → (Fin (suc n) → A) → (Fin n → A)
 finTrunc f i = f (inject₁ i)
@@ -770,8 +821,8 @@ maxFinSelect {n} f ε ε>0 = iFin , (begin-strict
   iFin : Fin (suc n)
   iFin = fromℕ< {i} i<sucn
 
-minFinSelect : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → minFin f + ε > f i)
-minFinSelect = {!!}
+-- minFinSelect : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → minFin f + ε > f i)
+-- minFinSelect = {!!}
 
 {-
 F : Fin 3 → ℝ
@@ -902,7 +953,7 @@ so y is an upper bound of A. Thus supA exists by Proposition 4.3                
 
 isTotallyBounded⇒isNonvoid : {P : Pred ℝ 0ℓ} → P isTotallyBounded → P isNonvoid
 isTotallyBounded⇒isNonvoid {P} PT = (proj₁ (proj₂ (PT 1ℝ 0<1))) (zero , ℕ.z≤n)
-{-
+
 corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasSupremum
 corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNonvoid PT) (totallyBounded⇒boundedAbove PT) mainPart
   where
@@ -919,20 +970,20 @@ corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNo
     N-1 N : ℕ
     N-1 = proj₁ pack
     N = suc N-1
-    as : Fin N → 𝕊 P
-    as = proj₁ (proj₂ pack)
-    proofforas : (X : 𝕊 P) → ∃ (λ (k : Σ ℕ (λ k → k ℕ.< N)) →  ∣ proj₁ X - proj₁ (as (fromℕ< (proj₂ k))) ∣ < α)
+    as𝕊 : Σ ℕ (λ k → k ℕ.≤ N-1) → 𝕊 P
+    as𝕊 = proj₁ (proj₂ pack)
+    as : Σ ℕ (λ k → k ℕ.≤ N-1) → ℝ
+    as k = proj₁ (as𝕊 k)
+    proofforas : (X : 𝕊 P) → ∃ (λ (k : Σ ℕ (λ k → k ℕ.≤ N-1)) →  ∣ proj₁ X - as k ∣ < α)
     proofforas = proj₂ (proj₂ pack)
-    asFin : Fin N → ℝ
-    asFin = (λ k → proj₁ (as k))
 
     --here we need the maximum as 𝕊 P
-    ∃n : ∃ (λ n → proj₁ (as n) > maxFin asFin - α)
-    ∃n = maxFinSelect asFin α α>0
-    n : Fin (suc N-1)
+    ∃n : ∃ (λ n → as n > maxΣ as - α)
+    ∃n = maxΣSelect {N-1} as α α>0
+    n : Σ ℕ (λ n → n ℕ.≤ N-1)
     n = proj₁ ∃n
     an : ℝ
-    an = proj₁ (as n)
+    an = as n
 
     eitheror : an < x+2α ⊎ an > x
     eitheror = fast-corollary-2-17 an x x+2α (begin-strict
@@ -952,8 +1003,8 @@ corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNo
           ak + α                     ≈⟨ solve 2 (λ ak α → ak ⊕ α ⊜ ak ⊖ α ⊕ α ⊕ α) ≃-refl ak α ⟩
           ak - α + α + α             <⟨ +-monoˡ-< α {ak - α + α} {an + α}
                                        (+-monoˡ-< α {ak - α} {an} (begin-strict
-                                                                  ak - α           ≤⟨ +-monoˡ-≤ (- α) {ak} {maxFin asFin} (mFinsn⇒fm≤maxFinf asFin k) ⟩
-                                                                  maxFin asFin - α <⟨ proj₂ ∃n ⟩
+                                                                  ak - α           ≤⟨ +-monoˡ-≤ (- α) {ak} (m≤n-1⇒fm≤maxΣf as k) ⟩
+                                                                  maxΣ as - α      <⟨ proj₂ ∃n ⟩
                                                                   an               ∎)) ⟩
           an + α + α                 <⟨ +-monoˡ-< α (+-monoˡ-< α an<x+2α) ⟩ 
           x + α + α + α + α          ≈⟨ solve 2 (λ x y → x ⊕ y ⊕ y ⊕ y ⊕ y ⊜ x ⊕ (y ⊕ y ⊕ y ⊕ y)) ≃-refl x α ⟩
@@ -968,17 +1019,18 @@ corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNo
         open ≤-Reasoning
         a : ℝ
         a = proj₁ sa
-        kp : ∃ (λ (k : Σ ℕ (λ k → k ℕ.< N)) → ∣ a - proj₁ (as (fromℕ< (proj₂ k))) ∣ < α)
+        kp : ∃ (λ (k : Σ ℕ (λ k → k ℕ.≤ N-1)) → ∣ a - as k ∣ < α)
         kp = proofforas sa
-        k : Fin N
-        k = fromℕ< (proj₂ (proj₁ kp))
+        k : Σ ℕ (λ k → k ℕ.≤ N-1)
+        k = proj₁ kp
         ak : ℝ
-        ak = proj₁ (as k)
+        ak = as k
     part2 : an > x → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
-    part2 an>x = inj₂ (an , proj₂ (as n) , an>x)
+    part2 an>x = inj₂ (an , proj₂ (as𝕊 n) , an>x)
 
-corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
-corollary-4-4-infimum {P} PT = {!!}
+-- Is similarly provable. Or maybe a (-_) ∘ f would shorten it.
+-- corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
+-- corollary-4-4-infimum {P} PT = ?
 
 {-
 A finite closed interval is compact if it is nonempty.
@@ -1011,42 +1063,6 @@ P ⟶ Q = Func 𝕊[ P ] 𝕊[ Q ]
 
 _⟶ℝ : Pred ℝ 0ℓ → Set
 P ⟶ℝ = Func 𝕊[ P ] ≃-setoid
-
--- testing : {!!}
--- testing = (x : ℝ) → let T = x in {!!}
-
-{-
-f : [a , b] → ℝ
-
-f : Func (𝕊[ P ]) ≃-setoid
-      P → ℝ
-
-∣ ⟦ x ⟧ + ⟦ y ⟧ ∣ < ⟦ δ ⟧
-
-
--}
-
-data _isContinuousAt_ {P : Pred ℝ 0ℓ} (F : P ⟶ℝ) (x : 𝕊 P) : Set where
-  cont* : ((ε : ℝ⁺) → ∃ λ (δ : ℝ⁺) → (y : 𝕊 P) → ∣ {!!} ∣ < (proj₁ δ) → {!!}) → F isContinuousAt x
-
-{-data _isContinuousAt_ {P : Pred ℝ 0ℓ} (F : Func (𝕊[ P ]) ≃-setoid) (xP : 𝕊 P) : Set where
-  cont* : ((ε>0 : ℝ⁺) → ∃ λ (δ>0 : ℝ⁺) → (yP : 𝕊 P) → let ε = proj₁ ε>0; δ = proj₁ δ>0; x = proj₁ xP; y = proj₁ yP; f = Func.f F in
-          {!∣ x - y ∣ < δ → ∣ f x - f y ∣ < ε!}) → F isContinuousAt xP
--}    
-  --cont* : ((ε : ℝ⁺) → ∃ λ (δ : ℝ⁺) → (y : 𝕊 P) → ∣ proj₁ x - proj₁ y ∣ < proj₁ δ → ∣ {!!} ∣ < proj₁ ε) → F isContinuousAt x
-
-{-
-
-
-A function f : [a,b] → ℝ is continuous if for each ε > 0 there exists ω(ε) > 0 such that
-∣f(x) - f(y)∣ ≤ ε whenever ∣x - y∣ ≤ ω(ε).
-
-
-
-
-Why not make a function continuous at a point and then extend that to continuity on subsets of ℝ
-instead of focusing on intervals? We can use intervals for differentiation later on instead.
--}
 
 -- The interval has to be an explicit parameter; otherwise it cannot figure out
 -- from the function what the interval was.
@@ -1115,14 +1131,16 @@ fullPartition D (suc n-1) i = CIlower D + (+ (toℕ i) / n) ⋆ * (CIupper D - C
 -}
 -}
 
-contOnD⇒totallyBounded : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f →
+contOnD⇒totallyBounded : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (a<b : CIlower D < CIupper D) →
     inRangeOf f isTotallyBounded
-contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) 2ε 2ε>0 = n , {!!} , {!!}
+contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) a<b 2ε 2ε>0 = n , fas𝕊 , mainPart
   where
   ε : ℝ --have to take 2ε because isTotallyBounded expects strict <
   ε = 2ε * (+ 1 / 2) ⋆
+  ε>0 : ε > 0ℝ
+  ε>0 = 0<x,y⇒0<x*y {2ε} {(+ 1 / 2)⋆} 2ε>0 (posx⇒0<x (0<p⇒0<p⋆ (+ 1 / 2) tt))
   ε⁺ ωε : ℝ⁺
-  ε⁺ = ε , {!!}
+  ε⁺ = ε , ε>0
   ωε = ω ε⁺
   a b : ℝ
   a = CIlower D
@@ -1136,20 +1154,21 @@ contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) 2ε 2ε>0 = n , {!!} , {!!
   d : ℝ
   d = (b - a) * (+ 1 / n) ⋆
   d>0 : d > 0ℝ
-  d>0 = {!!}
-  asd : {i : ℕ} → i ℕ.≤ n  → D ↓
-  asd = fullPartitionℕ D n
-  as : {i : ℕ} → i ℕ.≤ n  → ℝ
-  as i≤n = proj₁ (asd i≤n)
-  fas𝕊 : {i : ℕ} → i ℕ.≤ n → 𝕊 (inRangeOf f)
-  fas𝕊 i≤n = f (asd i≤n) , asd i≤n , ≃-refl
+  d>0 = 0<x,y⇒0<x*y {b - a} {(+ 1 / n)⋆} (x<y⇒0<y-x a b a<b) (posx⇒0<x (0<p⇒0<p⋆ (+ 1 / n) tt))
+  asd : Σ ℕ (λ k → k ℕ.≤ n)  → D ↓
+  asd (k , k≤n) = fullPartitionℕ D n {tt} {k} k≤n
+  as : Σ ℕ (λ k → k ℕ.≤ n)  → ℝ
+  as k = proj₁ (asd k)
+  fas𝕊 : Σ ℕ (λ k → k ℕ.≤ n) → 𝕊 (inRangeOf f)
+  fas𝕊 k = f (asd k) , asd k , ≃-refl
 
-  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (i : Σ ℕ (λ i → i ℕ.≤ n)) → ∣ proj₁ y - proj₁ (fas𝕊 (proj₂ i)) ∣ < 2ε)
-  mainPart (y , x , fx≃y) = (i , i≤n) , {!begin-strict
-          ∣ y - proj₁ (fas𝕊 iFin) ∣              ≈⟨ ? ⟩
-          ∣ f x - f (as iFin) ∣                  ≤⟨ {!hyp ε⁺ x (as iFin) ?!} ⟩
-          ε                                     <⟨ ? ⟩
-          2ε                                    ∎!} --this hangs too
+  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (i : Σ ℕ (λ i → i ℕ.≤ n)) → ∣ proj₁ y - proj₁ (fas𝕊 i) ∣ < 2ε)
+  mainPart (y , x , fx≃y) = i , (begin-strict
+           ∣ y - proj₁ (fas𝕊 i) ∣        ≈⟨ ∣-∣-cong (+-congˡ (- f (asd i)) {y} {f x} (≃-symm fx≃y)) ⟩
+          ∣ f x - f (asd i) ∣            ≤⟨ hyp ε⁺ x (asd i) (<⇒≤ {∣ proj₁ x - proj₁ (asd i) ∣} {proj₁ (ω ε⁺)} iInRadius) ⟩
+          ε                             <⟨ *-monoʳ-<-pos {2ε} (0<x⇒posx 2ε>0) {(+ 1 / 2)⋆} {1ℝ} (p<q⇒p⋆<q⋆ (+ 1 / 2) 1ℚᵘ (ℚ.*<* (ℤ.+<+ ℕP.≤-refl))) ⟩      -- ε was 2ε * (+ 1 / 2)⋆
+          2ε * 1ℝ                      ≈⟨ *-identityʳ 2ε ⟩
+          2ε                                    ∎)
     where
     open ≤-Reasoning
     {-
@@ -1160,14 +1179,39 @@ contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) 2ε 2ε>0 = n , {!!} , {!!
     -}
 
     --this should rather be solved with fullPartition-[x-aᵢ]<d/n
-    arch₂ : ∃ (λ i → (+[1+ i ] / 1) ⋆ > (proj₁ x - a) * (_⁻¹ d (inj₂ d>0)))
-    arch₂ = fast-archimedean-ℝ ((proj₁ x - a) * (_⁻¹ d (inj₂ d>0)))
-    i : ℕ
-    i = proj₁ arch₂
-    i≤n : i ℕ.≤ n
-    i≤n = {!!}
+    pointNearApp : ∃ λ (i : Σ ℕ (λ i → i ℕ.≤ n)) →
+            ∣ as i - proj₁ x ∣ < ((+ 1 / n)) ⋆ * (b - a)
+    pointNearApp = fullPartitionℕ-pointNear D a<b n x
+    i : Σ ℕ (λ i → i ℕ.≤ n)
+    i = proj₁ pointNearApp
+    iInRadius : ∣ proj₁ x - as i ∣ < proj₁ (ω ε⁺)
+    iInRadius = begin-strict
+                ∣ proj₁ x - as i ∣        ≈⟨ ≃-trans (≃-symm (∣-x∣≃∣x∣ {proj₁ x - as i})) (∣-∣-cong { - (proj₁ x - as i)} {as i - proj₁ x}
+                                                                                               (solve 2 (λ t t' → ⊝ (t ⊖ t') ⊜ t' ⊖ t) ≃-refl (proj₁ x) (as i)) ) ⟩
+                ∣ as i - proj₁ x ∣        <⟨ proj₂ pointNearApp ⟩
+                (+ 1 / n)⋆ * (b - a)    ≈⟨ ≃-symm (*-identityʳ ((+ 1 / n)⋆ * (b - a))) ⟩
+                (+ 1 / n)⋆ * (b - a) * 1ℝ ≈⟨ *-congˡ {(+ 1 / n)⋆ * (b - a)} {1ℝ} {(proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)}
+                                               (≃-symm (*-inverseˡ (proj₁ ωε) (inj₂ (proj₂ ωε)))) ⟩
+                (+ 1 / n)⋆ * (b - a) * ((proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) ≈⟨ solve 4 (λ t₁ t₂ t₃ t₄ → (t₁ ⊗ t₂) ⊗ (t₃ ⊗ t₄) ⊜ t₁ ⊗ ((t₂ ⊗ t₃) ⊗ t₄))
+                                                                                           ≃-refl ((+ 1 / n)⋆) (b - a) ((proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))) (proj₁ ωε) ⟩
+                (+ 1 / n)⋆ * ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) <⟨ archApp ⟩
+                (+ 1 / n)⋆ * ((+ n / 1)⋆ * (proj₁ ωε)) ≈⟨ ≃-symm (*-assoc ((+ 1 / n)⋆) ((+ n / 1)⋆) (proj₁ ωε)) ⟩
+                (+ 1 / n)⋆ * (+ n / 1)⋆ * (proj₁ ωε) ≈⟨ *-congʳ {proj₁ ωε} {((+ 1 / n)⋆) * (+ n / 1)⋆} {1ℝ}
+                                                         (≃-trans (≃-symm (⋆-distrib-* (+ 1 / n) (+ n / 1))) (⋆-cong {(+ 1 / n) ℚ.* (+ n / 1)} {1ℚᵘ}
+                                                           (ℚ.*≡* (cong +[1+_] (trans (ℕP.*-identityʳ (n-1 ℕ.+ 0))
+                                                                                (trans (ℕP.+-identityʳ n-1)
+                                                                                (trans (sym (ℕP.*-identityʳ n-1))
+                                                                                       (sym (ℕP.+-identityʳ (n-1 ℕ.* 1)))))))))) ⟩
+                1ℝ * (proj₁ ωε)                     ≈⟨ *-identityˡ (proj₁ ωε) ⟩
+                proj₁ (ωε)             ∎
+      where
+      -- proj₂ arch : (+ n / 1)⋆ > (b-a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))
+      archApp : (+ 1 / n)⋆ * ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) < (+ 1 / n)⋆ * ((+ n / 1)⋆ * (proj₁ ωε))
+      archApp = *-monoʳ-<-pos {(+ 1 / n)⋆} (0<p⇒0<p⋆ (+ 1 / n) tt) {(b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)} {(+ n / 1)⋆ * (proj₁ ωε)}
+                  (*-monoˡ-<-pos {proj₁ ωε} (0<x⇒posx (proj₂ ωε)) {(b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))} {(+ n / 1)⋆}
+                    (proj₂ arch))
+      
     
-weakWeierstrass-sup : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f →
+weakWeierstrass-sup : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (a<b : CIlower D < CIupper D) →
     inRangeOf f hasSupremum
-weakWeierstrass-sup {D} {f} fcont = {!!}
--}
+weakWeierstrass-sup {D} {f} fcont a<b = corollary-4-4-supremum (contOnD⇒totallyBounded {D} {f} fcont a<b)
