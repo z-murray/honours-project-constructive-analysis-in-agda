@@ -1,3 +1,4 @@
+
 -- Proof of the alternating series test
 
 {-# OPTIONS --without-K --safe #-}
@@ -166,6 +167,34 @@ private
     abstract
       fast-slice≤xₙ : {xs : ℕ → ℝ} → xs isDecreasing → xs ConvergesTo 0ℝ → (n k : ℕ) → pow (- 1ℝ) n * ∑ (alt xs) n (n ℕ.+ k) ≤ xs n
       fast-slice≤xₙ = slice≤xₙ
+
+{-
+Alternating Series Test:
+  Let (xₙ) be a decreasing sequence that converges to 0. Then the series ∑(-1)ᵏxₖ is convergent.
+Proof:
+  Since (xₙ)→0 and is decreasing, it follows that xₙ ≥ 0 for all n∈ℕ. We will show that 
+the given sequence is a Cauchy sequence. Let n < m.
+  ∣∑ᵢ₌ₙᵐ(-1)ⁱxᵢ∣ ≤ xₙ?
+
+Doesn't matter if n is even or odd 
+Suppose n even. Then
+∣(-1)ⁿxₙ + ∑ᵢ₌ₙ₊₁ᵐ(-1)ⁱxᵢ∣ = xₙ - xₙ₊₁ + ∑ᵢ₌ₙ₊₂ᵐ(-1)ⁱxᵢ
+                          ≤ xₙ - xₙ₊₁ + xₙ₊₁ = xₙ.
+Suppose n odd. Then
+
+= ∣(-1)ⁿxₙ + ⋯ + (-1)ⁿ⁺ᵐ⁻ⁿxₙ₊ₘ₋ₙ∣
+-}
+
+{-
+  Plan:
+    - Prove that each ∑₀ is nonnegative.
+    - Prove that (-1)ⁿ*∑ₖ₌ₙᵐ(-1)ᵏxₖ is nonnegative for all m≥n by:
+      - proving from the subsequence that it decreases and converges to 0ℝ; then
+      - calling the proof for ∑₀.
+    - Prove similarly that each ∑₀ is ≤ x₀ (from 1 you can use the previous proof for n=1 since you're subtracting a nonnegative number from x₀),
+      then extend to (-1)ⁿ*∑ₖ₌ₙᵐ(-1)ᵏxₖ for all n.
+    - Finally, point to the Cauchy criterion.
+-}
 
 alternating-series-test : {xs : ℕ → ℝ} → xs isDecreasing → xs ConvergesTo 0ℝ →
                           SeriesOf (λ n → pow (- 1ℝ) n * xs n) isConvergent

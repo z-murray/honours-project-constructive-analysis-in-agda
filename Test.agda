@@ -40,6 +40,7 @@ open import Inverse
 open import Sequence
 
 -- A function which creates a real number equal to p⋆, but with a more complex definition than the original one.
+-- Needed because when using _⋆, Agda can sometimes simplify calculations and things can terminate that otherwise cannot.
 strangify : ℚᵘ → ℝ
 seq (strangify _) zero = 0ℚᵘ
 seq (strangify p) (suc n) = p ℚ.+ (+ 1 / (suc n))
@@ -79,7 +80,7 @@ test-inverse-on-strange1 = ↧ₙ (seq (_⁻¹ strange1 strange1≄0) 100)
 
 test-e : ℕ
 test-e = ↧ₙ (seq e 100)
--- runs out of memory
+-- gets stuck
 
 archimedean-ℝ₃-on-strange1 : ℕ
 archimedean-ℝ₃-on-strange1 = proj₁ (archimedean-ℝ₃ {strange1} strange1 pos-strange1)
@@ -112,4 +113,4 @@ test-proposition-3-6-1 = ↧ₙ (seq (proj₁ (proposition-3-6-1 {series} {(+ 1 
   series : ℕ → ℝ
   series zero = 1ℝ
   series (suc n) = (+ 1 / 3)⋆ * series n
-
+-- gets stuck
