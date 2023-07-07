@@ -60,6 +60,7 @@ open import ExtraProperties
 open import Real
 open import RealProperties
 open import Sequence
+open import FiniteSequences.SigmaIndices
 open ℝ-Solver
 
 -- Syntax I like better for product type representations of subsets
@@ -161,9 +162,9 @@ CINonempty {x} {y} CI = x , {!!}
 
 --Simply the numbers, without the proofs that they are in the interval. We also do not take the interval itself here. Just the pure recursion.
 --The recursive form is important because it makes it easier to make inductive proofs.
-fullPartitionℕ-base : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} → ℕ → ℝ
-fullPartitionℕ-base a b n zero = a
-fullPartitionℕ-base a b n {n≢0} (suc i) = fullPartitionℕ-base a b n {n≢0} i + ((+ 1 / n) {n≢0}) ⋆ * (b - a)
+fullPartition-base : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} → ℕ → ℝ
+fullPartition-base a b n zero = a
+fullPartition-base a b n {n≢0} (suc i) = fullPartition-base a b n {n≢0} i + ((+ 1 / n) {n≢0}) ⋆ * (b - a)
 
 --(These for the next one, but is also useful otherwise.)
 ℚ≃-refl₂ : {a b : ℚᵘ} → a ≡ b → a ℚ.≃ b
@@ -190,16 +191,16 @@ a/n+b/n≃[a+b]/n a b (suc n-1) = let n = (suc n-1) in begin-equality
   
 
 --Now a proof that this is equal to a+(i/n)*(b-a).
-fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} (i : ℕ) → fullPartitionℕ-base a b n {n≢0} i ≃ a + ((+ i / n) {n≢0})⋆ * (b - a)
-fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b (suc n-1) zero = let n = suc n-1 in begin
+fullPartition-base-aᵢ≃a+i/n*[b-a] : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} (i : ℕ) → fullPartition-base a b n {n≢0} i ≃ a + ((+ i / n) {n≢0})⋆ * (b - a)
+fullPartition-base-aᵢ≃a+i/n*[b-a] a b (suc n-1) zero = let n = suc n-1 in begin
                                              a          ≈⟨ ≃-symm (+-identityʳ a) ⟩
                                              a + 0ℝ     ≈⟨ +-congʳ a {0ℝ} {(+ zero / n) ⋆ * (b - a)}
                                                                 (≃-trans (≃-symm (*-zeroˡ (b - a)))
                                                                          (*-congʳ {b - a} (⋆-cong {0ℚᵘ} {+ zero / n} (ℚ.*≡* refl)))) ⟩
                                              a + (+ zero / n) ⋆ * (b - a) ∎
   where open ≃-Reasoning
-fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b (suc n-1) {_} (suc i) = let n = suc n-1 in begin
-             fullPartitionℕ-base a b n i + (+ 1 / n) ⋆ * (b - a) ≈⟨ +-congˡ ((+ 1 / n) ⋆ * (b - a)) (fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b n i) ⟩
+fullPartition-base-aᵢ≃a+i/n*[b-a] a b (suc n-1) {_} (suc i) = let n = suc n-1 in begin
+             fullPartition-base a b n i + (+ 1 / n) ⋆ * (b - a) ≈⟨ +-congˡ ((+ 1 / n) ⋆ * (b - a)) (fullPartition-base-aᵢ≃a+i/n*[b-a] a b n i) ⟩
                                a + (+ i / n)⋆ * (b - a) + (+ 1 / n) ⋆ * (b - a) ≈⟨ +-assoc a ((+ i / n)⋆ * (b - a)) ((+ 1 / n)⋆ * (b - a)) ⟩
                                a + ((+ i / n)⋆ * (b - a) + (+ 1 / n) ⋆ * (b - a)) ≈⟨ +-congʳ a {(+ i / n)⋆ * (b - a) + (+ 1 / n) ⋆ * (b - a)} {(+ (suc i) / n)⋆ * (b - a)}
                                                                       (≃-trans (≃-symm (*-distribʳ-+ (b - a) ((+ i / n)⋆) ((+ 1 / n)⋆)))
@@ -218,19 +219,19 @@ private
   ℤn≡m⇒n≤m : {n m : ℤ} → n ≡ m → n ℤ.≤ m
   ℤn≡m⇒n≤m {n} .{n} refl = ℤP.≤-refl
   
-  a≤b⇒a≤aᵢ : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} (i : ℕ) → a ≤ b → a ≤ fullPartitionℕ-base a b n {n≢0} i
+  a≤b⇒a≤aᵢ : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} (i : ℕ) → a ≤ b → a ≤ fullPartition-base a b n {n≢0} i
   a≤b⇒a≤aᵢ a b (suc n-1) i a≤b = let n = suc n-1 in begin
                            a           ≤⟨ 0≤x⇒y≤y+x {(+ i / n)⋆ * (b - a)} a (0≤x,y⇒0≤x*y {(+ i / n)⋆} {b - a} (p≤q⇒p⋆≤q⋆ (0ℚᵘ) (+ i / n) (ℚ.*≤* (ℤP.≤-trans (ℤ.+≤+ (ℕ.z≤n {i}))
                                                                                                                                                                 (ℤn≡m⇒n≤m {+ i} {+ i ℤ.* + 1} (sym (ℤP.*-identityʳ (+ i)))))))
                                                                                                                 (x≤y⇒0≤y-x a≤b)) ⟩
-                           a + (+ i / n)⋆ * (b - a) ≈⟨ ≃-symm (fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b n i) ⟩
-                  fullPartitionℕ-base a b n i ∎
+                           a + (+ i / n)⋆ * (b - a) ≈⟨ ≃-symm (fullPartition-base-aᵢ≃a+i/n*[b-a] a b n i) ⟩
+                  fullPartition-base a b n i ∎
     where
     open ≤-Reasoning
 
-  i≤n∧a≤b⇒aᵢ≤b : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} {i : ℕ} → i ℕ.≤ n → a ≤ b → fullPartitionℕ-base a b n {n≢0} i ≤ b
+  i≤n∧a≤b⇒aᵢ≤b : (a b : ℝ) (n : ℕ) .{n≢0 : n ≢0} {i : ℕ} → i ℕ.≤ n → a ≤ b → fullPartition-base a b n {n≢0} i ≤ b
   i≤n∧a≤b⇒aᵢ≤b a b (suc n-1) {_} {i} i≤n a≤b = let n = suc n-1 in begin
-                                  fullPartitionℕ-base a b (suc n-1) i    ≈⟨ fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b n i ⟩
+                                  fullPartition-base a b (suc n-1) i    ≈⟨ fullPartition-base-aᵢ≃a+i/n*[b-a] a b n i ⟩
                                   a + (+ i / n)⋆ * (b - a)                ≤⟨ +-monoʳ-≤ a (*-monoʳ-≤-nonNeg {(+ i / n)⋆} {b - a} {1ℝ}
                                                                                            (p≤q⇒p⋆≤q⋆ (+ i / n) (1ℚᵘ)
                                                                                              (ℚ.*≤* (ℤP.≤-trans (ℤn≡m⇒n≤m {+ i ℤ.* + 1} {+ i} (ℤP.*-identityʳ (+ i)))
@@ -246,14 +247,14 @@ private
 --A partition of a compact interval to n equally sized subintervals. Returns the (suc n) separators.
 --Maybe we should change the parameter to a sigma index for the sake of consistency.
 
-fullPartitionℕ : (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → {i : ℕ} → i ℕ.≤ n → D ↓
-fullPartitionℕ D (suc n-1) {_} {i} i≤n = let n = suc n-1 ; a = CIlower D ; b = CIupper D in
-                                                          fullPartitionℕ-base a b n i ,
+fullPartition : (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → {i : ℕ} → i ℕ.≤ n → D ↓
+fullPartition D (suc n-1) {_} {i} i≤n = let n = suc n-1 ; a = CIlower D ; b = CIupper D in
+                                                          fullPartition-base a b n i ,
                                                           a≤b⇒a≤aᵢ a b n i (CIlower≤upper D) ,
                                                           i≤n∧a≤b⇒aᵢ≤b a b n {_} {i} i≤n (CIlower≤upper D)
 {-
-fullPartitionℕ D (suc n-1) {_} {zero} _ = CIlower D , ≤-refl {CIlower D} , CIlower≤upper D
-fullPartitionℕ D (suc n-1) {_} {suc i-1} i<sucn = newOne , ≤-trans {CIlower D} {proj₁ rec} {newOne} (proj₁ (proj₂ rec))
+fullPartition D (suc n-1) {_} {zero} _ = CIlower D , ≤-refl {CIlower D} , CIlower≤upper D
+fullPartition D (suc n-1) {_} {suc i-1} i<sucn = newOne , ≤-trans {CIlower D} {proj₁ rec} {newOne} (proj₁ (proj₂ rec))
         (begin
             proj₁ rec     ≈⟨ ≃-symm (+-identityʳ (proj₁ rec)) ⟩
             proj₁ rec + 0ℝ ≤⟨ +-monoʳ-≤ (proj₁ rec) {0ℝ} {1/n * (b - a)} (0≤x,y⇒0≤x*y {1/n} {b - a} (nonNegx⇒0≤x {1/n} (nonNegp⇒nonNegp⋆ (+ 1 / n) tt)) (x≤y⇒0≤y-x {a} {b} (CIlower≤upper D))) ⟩
@@ -270,17 +271,17 @@ fullPartitionℕ D (suc n-1) {_} {suc i-1} i<sucn = newOne , ≤-trans {CIlower 
   b = CIupper D
   1/n = (+ 1 / n) ⋆
   rec : D ↓
-  rec = fullPartitionℕ D n {_} {i-1} (ℕP.<-trans (ℕP.≤-refl {suc i-1}) i<sucn)
+  rec = fullPartition D n {_} {i-1} (ℕP.<-trans (ℕP.≤-refl {suc i-1}) i<sucn)
   newOne : ℝ
   newOne = proj₁ rec + (+ 1 / n) ⋆ * (b - a)
 -}
 
-fullPartitionℕ-a₀≃a : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → proj₁ (fullPartitionℕ D n {n≢0} {zero} ℕ.z≤n) ≃ CIlower D
-fullPartitionℕ-a₀≃a D (suc n-1) = ≃-refl
+fullPartition-a₀≃a : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → proj₁ (fullPartition D n {n≢0} {zero} ℕ.z≤n) ≃ CIlower D
+fullPartition-a₀≃a D (suc n-1) = ≃-refl
 
-fullPartitionℕ-aₙ≃b : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → proj₁ (fullPartitionℕ D n {n≢0} {n} (ℕP.≤-refl)) ≃ CIupper D
-fullPartitionℕ-aₙ≃b D (suc n-1) = let n = suc n-1 ; a = CIlower D ; b = CIupper D in begin
-        proj₁ (fullPartitionℕ D n (ℕP.≤-refl))                ≈⟨ fullPartitionℕ-base-aᵢ≃a+i/n*[b-a] a b n n ⟩
+fullPartition-aₙ≃b : ∀ (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → proj₁ (fullPartition D n {n≢0} {n} (ℕP.≤-refl)) ≃ CIupper D
+fullPartition-aₙ≃b D (suc n-1) = let n = suc n-1 ; a = CIlower D ; b = CIupper D in begin
+        proj₁ (fullPartition D n (ℕP.≤-refl))                ≈⟨ fullPartition-base-aᵢ≃a+i/n*[b-a] a b n n ⟩
         a + (+ n / n)⋆ * (b - a)                               ≈⟨ +-congʳ a {(+ n / n)⋆ * (b - a)} {b - a} (≃-trans (*-congʳ {b - a} {(+ n / n)⋆} {1ℝ} (⋆-cong (ℚ.*≡* (cong +[1+_] (trans (ℕP.*-identityʳ n-1)
                                                                                                                                                                                          (sym (ℕP.+-identityʳ n-1)))))))
                                                                                                                    (*-identityˡ (b - a))) ⟩
@@ -303,10 +304,10 @@ but if we only know that a ≤ b, we cannot decide.
 What about working in (a - ε, b + ε) for some arbitrary ε > 0?
 -}
 
-fullPartitionℕ-pointNear :  ∀ (D : CompactInterval) (a<b : CIlower D < CIupper D) (n : ℕ) {n≢0 : n ≢0} (xd : D ↓) →
-          ∃ λ (sk : Σ ℕ (λ k → k ℕ.≤ n)) →
-            ∣ proj₁ (fullPartitionℕ D n {n≢0} (proj₂ sk)) - proj₁ xd ∣ < ((+ 1 / n) {n≢0}) ⋆ * (CIupper D - CIlower D)   -- ∣ proj₁ (fullPartitionℕ D n {n≢0} {zero} (≤-step {!!}) ) - proj₁ xd ∣ < 
-fullPartitionℕ-pointNear D a<b (suc n-1) (x , prx) = [ rec {n} {ℕP.≤-refl} , rightEnd ]′ (corollary-2-17 x aₙ₋₁ aₙ
+fullPartition-pointNear :  ∀ (D : CompactInterval) (a<b : CIlower D < CIupper D) (n : ℕ) {n≢0 : n ≢0} (xd : D ↓) →
+          ∃ λ (sk : SigInd n) →
+            ∣ proj₁ (fullPartition D n {n≢0} (proj₂ sk)) - proj₁ xd ∣ < ((+ 1 / n) {n≢0}) ⋆ * (CIupper D - CIlower D)   -- ∣ proj₁ (fullPartition D n {n≢0} {zero} (≤-step {!!}) ) - proj₁ xd ∣ < 
+fullPartition-pointNear D a<b (suc n-1) (x , prx) = [ rec {n} {ℕP.≤-refl} , rightEnd ]′ (corollary-2-17 x aₙ₋₁ aₙ
                                                                                                          (begin-strict
                                                                                                                 aₙ₋₁        ≈⟨ ≃-symm (+-identityʳ aₙ₋₁) ⟩
                                                                                                                 aₙ₋₁ + 0ℝ   <⟨ +-monoʳ-< aₙ₋₁ {0ℝ} {d} 0<d ⟩
@@ -316,7 +317,7 @@ fullPartitionℕ-pointNear D a<b (suc n-1) (x , prx) = [ rec {n} {ℕP.≤-refl}
   n : ℕ
   n = suc n-1
   asdℕ : {i : ℕ} → i ℕ.≤ n  → D ↓
-  asdℕ = fullPartitionℕ D n
+  asdℕ = fullPartition D n
   asℕ : {i : ℕ} → i ℕ.≤ n  → ℝ
   asℕ i≤n = proj₁ (asdℕ i≤n)
   a b d aₙ₋₁ aₙ : ℝ
@@ -330,13 +331,13 @@ fullPartitionℕ-pointNear D a<b (suc n-1) (x , prx) = [ rec {n} {ℕP.≤-refl}
   0<d = posx⇒0<x (posx,y⇒posx*y {(+ 1 / n) ⋆} {b - a} (0<p⇒0<p⋆ (+ 1 / n) tt) a<b) -- here we need a < b
 
   --if it's already greater than aₙ₋₁:
-  rightEnd : aₙ₋₁ < x → ∃ λ (sk : Σ ℕ (λ k → k ℕ.≤ n)) →
+  rightEnd : aₙ₋₁ < x → ∃ λ (sk : SigInd n) →
             ∣ asℕ (proj₂ sk) - x ∣ < d
   rightEnd aₙ₋₁<x = (n , ℕP.≤-refl) , -y<x<y⇒∣x∣<y (aₙ - x) d ((begin-strict
                                                                   - d        <⟨ neg-mono-< {0ℝ} {d} 0<d ⟩
                                                                   - 0ℝ       ≈⟨ ≃-symm 0≃-0 ⟩
                                                                     0ℝ       ≈⟨ ≃-symm (+-inverseʳ b) ⟩
-                                                               b  - b        ≈⟨ +-congˡ (- b) {b} {aₙ} (≃-symm (fullPartitionℕ-aₙ≃b D n)) ⟩
+                                                               b  - b        ≈⟨ +-congˡ (- b) {b} {aₙ} (≃-symm (fullPartition-aₙ≃b D n)) ⟩
                                                                aₙ - b        ≤⟨ +-monoʳ-≤ aₙ { - b} { - x} (neg-mono-≤ {x} {b} (proj₂ prx)) ⟩
                                                                aₙ - x        ∎) ,
                                                                (begin-strict

@@ -402,17 +402,6 @@ xₙ≃c⇒xₙ→c {xs} {c} hyp = con* (λ {(suc k-1) -> let k = suc k-1 in 0 ,
   (+ 1 / k) ⋆   ∎}})
   where open ≤-Reasoning
 
-<⇒≱ : _<_ ⇒ _≱_
-<⇒≱ {x} {y} (pos* (n-1 , x<y)) (nonNeg* x≥y) = let n = suc n-1 in ℚP.<-irrefl-≡ refl (begin-strict
-  + 1 / n                                         <⟨ x<y ⟩
-  seq y (2 ℕ.* n) ℚ.- seq x (2 ℕ.* n)             ≈⟨ ℚsolve 2 (λ x₂ₙ y₂ₙ ->
-                                                     y₂ₙ -: x₂ₙ =: -: (x₂ₙ -: y₂ₙ))
-                                                     ℚP.≃-refl (seq x (2 ℕ.* n)) (seq y (2 ℕ.* n)) ⟩
-  ℚ.- (seq x (2 ℕ.* n) ℚ.- seq y (2 ℕ.* n))       ≤⟨ ℚP.neg-mono-≤ (x≥y n) ⟩
-  ℚ.- (ℚ.- (+ 1 / n))                             ≈⟨ ℚP.neg-involutive (+ 1 / n) ⟩
-  + 1 / n                                          ∎)
-  where open ℚP.≤-Reasoning
-
 ⋆-distrib-⁻¹ : ∀ p -> (p⋆≄0 : (p ⋆) ≄0) -> ((p ⋆) ⁻¹) p⋆≄0 ≃ ((ℚ.1/ p) {p⋆≄0⇒∣↥p∣≢0 p p⋆≄0}) ⋆
 ⋆-distrib-⁻¹ p p⋆≄0 = let p⁻¹ = (ℚ.1/ p) {p⋆≄0⇒∣↥p∣≢0 p p⋆≄0}; p⋆⁻¹ = ((p ⋆) ⁻¹) p⋆≄0 in
                       ≃-symm (⁻¹-unique (p⁻¹ ⋆) (p ⋆) p⋆≄0 (begin
@@ -2115,10 +2104,6 @@ xs isIncreasing₂ = (m n : ℕ) → m ℕ.≥ n → xs m ≥ xs n
 isIncreasing⇒isIncreasing₂ : {xs : ℕ → ℝ} → xs isIncreasing → xs isIncreasing₂
 isIncreasing⇒isIncreasing₂ {xs} inc m n m≥n = ≤-respˡ-≃ (neg-involutive (xs n)) (≤-respʳ-≃ (neg-involutive (xs m)) (neg-mono-≤
                                               (isDecreasing⇒isDecreasing₂ (λ k → neg-mono-≤ (inc k)) m n m≥n)))
-
---maybe move these into RealProperties?
-≃-refl₂ : {x y : ℝ} → x ≡ y → x ≃ y
-≃-refl₂ {x} {y} refl = ≃-refl {x}
 
 [-1]ᵏ≃1∨[-1]ᵏ≃[-1] : (k : ℕ) → pow (- 1ℝ) k ≃ 1ℝ ⊎ pow (- 1ℝ) k ≃ (- 1ℝ)
 [-1]ᵏ≃1∨[-1]ᵏ≃[-1] zero      = inj₁ ≃-refl

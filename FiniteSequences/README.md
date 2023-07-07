@@ -1,0 +1,1 @@
+Methods for representation of finite (mostly real) sequences and results about these.

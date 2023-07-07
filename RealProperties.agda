@@ -46,6 +46,10 @@ open import Real
   + 2 / n                    ∎}
   where open ℚP.≤-Reasoning
 
+-- Another version through which we can convert _≡_ into _≃_
+≃-refl₂ : {x y : ℝ} → x ≡ y → x ≃ y
+≃-refl₂ {x} {y} refl = ≃-refl {x}
+
 ≃-symm : Symmetric _≃_
 ≃-symm {x} {y} (*≃* x₁) = *≃* (λ { (suc k₁) -> let n = suc k₁ in begin
   ℚ.∣ seq y n ℚ.- seq x n ∣ ≈⟨ ∣p-q∣≃∣q-p∣ (seq y n) (seq x n) ⟩
@@ -1759,6 +1763,19 @@ xⁿxᵐ≃xⁿ⁺ᵐ x (suc n) m = begin
 <⇒≤ : _<_ ⇒ _≤_
 <⇒≤ {x} {y} x<y = pos⇒nonNeg x<y
 
+<⇒≱ : _<_ ⇒ _≱_
+<⇒≱ {x} {y} (pos* (n-1 , x<y)) (nonNeg* x≥y) = let n = suc n-1 in ℚP.<-irrefl-≡ refl (begin-strict
+  + 1 / n                                         <⟨ x<y ⟩
+  seq y (2 ℕ.* n) ℚ.- seq x (2 ℕ.* n)             ≈⟨ solve 2 (λ x₂ₙ y₂ₙ ->
+                                                     y₂ₙ ⊖ x₂ₙ ⊜ ⊝ (x₂ₙ ⊖ y₂ₙ))
+                                                     ℚP.≃-refl (seq x (2 ℕ.* n)) (seq y (2 ℕ.* n)) ⟩
+  ℚ.- (seq x (2 ℕ.* n) ℚ.- seq y (2 ℕ.* n))       ≤⟨ ℚP.neg-mono-≤ (x≥y n) ⟩
+  ℚ.- (ℚ.- (+ 1 / n))                             ≈⟨ ℚP.neg-involutive (+ 1 / n) ⟩
+  + 1 / n                                          ∎)
+  where
+    open ℚP.≤-Reasoning
+    open ℚ-Solver
+
 -- Helper lemmas often used in the next few order property proofs
 private
   z-y+y-x≃z-x : ∀ {x y z} -> (z - y) + (y - x) ≃ z - x
@@ -1880,6 +1897,38 @@ neg-mono-≤ {x} {y} x≤y = nonNeg-cong
                          (solve 2 (λ x y -> (y ⊖ x) ⊜ (⊝ x ⊖ (⊝ y))) ≃-refl x y)
                          x≤y
   where open ℝ-Solver
+
+a-b<c⇒a<c+b : ∀ {a b c : ℝ} → a - b < c → a < c + b
+a-b<c⇒a<c+b {a} {b} {c} hyp = begin-strict
+     a           ≈⟨ solve 2 (λ a b → a ⊜ a ⊖ b ⊕ b) ≃-refl a b ⟩
+     a - b + b   <⟨ +-monoˡ-< b hyp ⟩
+     c + b ∎
+  where
+    open ≤-Reasoning
+    open ℝ-Solver
+
+a-b<c⇒a<b+c : ∀ {a b c : ℝ} → a - b < c → a < b + c
+a-b<c⇒a<b+c {a} {b} {c} hyp = begin-strict
+     a           <⟨ a-b<c⇒a<c+b hyp ⟩
+     c + b       ≈⟨ +-comm c b ⟩
+     b + c       ∎
+  where open ≤-Reasoning
+
+0<ε⇒x<x+ε : ∀ {ε : ℝ} (x : ℝ) → 0ℝ < ε → x < x + ε
+0<ε⇒x<x+ε {ε} x ε>0 = begin-strict
+    x        ≈⟨ ≃-symm (+-identityʳ x) ⟩
+    x + 0ℝ   <⟨ +-monoʳ-< x ε>0 ⟩
+    x + ε    ∎
+  where open ≤-Reasoning
+
+0<ε⇒x-ε<x : ∀ {ε : ℝ} (x : ℝ) → 0ℝ < ε → x - ε < x
+0<ε⇒x-ε<x {ε} x ε>0 = begin-strict
+    x - ε     <⟨ +-monoʳ-< x { - ε} { - 0ℝ} (neg-mono-< {0ℝ} {ε} ε>0) ⟩
+    x - 0ℝ   ≈⟨ solve 1 (λ x → x ⊖ Κ 0ℚᵘ ⊜ x) ≃-refl x ⟩
+    x        ∎
+  where
+    open ≤-Reasoning
+    open ℝ-Solver
 
 x≤x⊔y : ∀ x y -> x ≤ x ⊔ y
 x≤x⊔y x y = nonNeg* (λ {(suc k₁) -> let n = suc k₁ in begin (
@@ -2516,6 +2565,53 @@ m≤n⇒fm≤maxfn f (suc m) n 1+m≤n = ≤-trans (lem (suc m)) (m≤n⇒maxfm�
     lem : (k : ℕ) → f k ≤ max f k
     lem zero    = ≤-refl
     lem (suc k) = x≤y⊔x (f (suc k)) (max f k)
+
+--based on Nuprl proof at https://www.nuprl.org/LibrarySnapshots/Published/Version1/Mathematics/reals/rmaximum-select_proof_1_2_1_1.html
+--maybe to ExtraProperties?
+maxSelect : ∀ (f : ℕ → ℝ) (n : ℕ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → max f n - ε < f i)
+maxSelect f zero ε ε>0 = zero , (begin-strict
+    f 0 - ε       <⟨ 0<ε⇒x<x+ε (f 0 - ε) ε>0 ⟩
+    f 0 - ε + ε   ≈⟨ solve 2 (λ x y → x ⊖ y ⊕ y ⊜ x) ≃-refl (f 0) ε ⟩
+    f 0           ∎)
+  where
+    open ≤-Reasoning
+    open ℝ-Solver
+maxSelect f (suc n) ε ε>0 = [ case₁ , case₂ ]′ eitheror
+  where
+  v : ℝ
+  v = max f n
+  prevproof : ∃ (λ i → v - ε < f i)
+  prevproof = maxSelect f n ε ε>0
+  i : ℕ
+  i = proj₁ prevproof
+
+  eitheror : f (suc n) - f i < ε ⊎ f (suc n) - f i > 0ℝ
+  eitheror = fast-corollary-2-17 (f (suc n) - f i) 0ℝ ε ε>0
+
+  case₁ : f (suc n) - f i < ε →
+      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
+  case₁ hyp = i , (begin-strict
+         v ⊔ f (suc n) - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z v (f (suc n)) (f i + ε) (a-b<c⇒a<c+b (proj₂ prevproof)) (a-b<c⇒a<b+c hyp)) ⟩
+         f i + ε - ε            ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f i) ε ⟩
+         f i                    ∎ )
+    where
+      open ≤-Reasoning
+      open ℝ-Solver
+
+  case₂ : f (suc n) - f i > 0ℝ →
+      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
+  case₂ hyp = suc n , (begin-strict
+         v ⊔ f (suc n) - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z v (f (suc n)) (f (suc n) + ε) lem (0<ε⇒x<x+ε (f (suc n)) ε>0)) ⟩
+         f (suc n) + ε - ε      ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f (suc n)) ε ⟩
+         f (suc n)              ∎)
+    where
+      open ≤-Reasoning
+      open ℝ-Solver
+      lem : v < f (suc n) + ε
+      lem = begin-strict
+          v              <⟨ a-b<c⇒a<c+b (proj₂ prevproof) ⟩
+          f i + ε        <⟨ +-monoˡ-< ε (0<y-x⇒x<y (f i) (f (suc n)) hyp) ⟩
+          f (suc n) + ε  ∎
 
 <-irrefl : Irreflexive _≃_ _<_
 <-irrefl {x} {y} (*≃* x≃y) (pos* (n-1 , x<y)) = let n = suc n-1 in ℚP.<-irrefl ℚP.≃-refl (begin-strict

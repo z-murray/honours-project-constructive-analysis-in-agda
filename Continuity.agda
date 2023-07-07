@@ -30,9 +30,6 @@ open import Data.List
 open import Function.Structures {_} {_} {_} {_} {ℕ} _≡_ {ℕ} _≡_
 open import Agda.Builtin.Unit
 open import Level using (Level)
-import Data.Fin.Base as Fin
-open import Data.Fin.Base using (Fin; fromℕ; fromℕ<; fromℕ≤; toℕ; inject₁)
-import Data.Fin.Properties as FinP
 
 {-
 The solvers are used and renamed often enough to warrant them being opened up here
@@ -65,6 +62,7 @@ open import RealProperties
 open import Inverse
 open import Sequence
 open import Interval
+open import FiniteSequences.SigmaIndices
 open ℝ-Solver
 
 -- Should I be using this I wonder? Instead of stuff like (ε : ℝ) → ε > 0ℝ → ⋯
@@ -454,10 +452,9 @@ Change to n instead of suc n-1
 
 -}
 
--- Σ ℕ (λ k → k ℕ.≤ n) is essentially instead of Fin. It's uglier but much easier to manage.
 _isTotallyBounded : Pred ℝ 0ℓ → Set
-P isTotallyBounded = (ε : ℝ) → ε > 0ℝ → ∃ λ (n-1 : ℕ) → ∃ λ (f : (Σ ℕ (λ k → k ℕ.≤ n-1)) → 𝕊 P) →
-                     (X : 𝕊 P) → ∃ λ (k : Σ ℕ λ k → k ℕ.≤ n-1) → ∣ proj₁ X - proj₁ (f k) ∣ < ε
+P isTotallyBounded = (ε : ℝ) → ε > 0ℝ → ∃ λ (n-1 : ℕ) → ∃ λ (f : SigInd n-1 → 𝕊 P) →
+                     (X : 𝕊 P) → ∃ λ (k : SigInd n-1) → ∣ proj₁ X - proj₁ (f k) ∣ < ε
 
 z<x⊔y⇒z<x∨z<y : {x y z : ℝ} → z < x ⊔ y → (z < x) ⊎ (z < y)
 z<x⊔y⇒z<x∨z<y {x} {y} {z} (pos* (n-1 , hyp)) = [ left , right ]′ (ℚP.≤-total x₂ₙ y₂ₙ)
@@ -493,357 +490,6 @@ z<max⦅xᵢ⦆⇒z<xⱼ {z} {f} {suc n-1} hyp = [ left , right ]′ (z<x⊔y⇒
 
     right : z < f n → ∃ λ k → k ℕ.≤ n × z < f k
     right hyp2 = n , ℕP.≤-refl , hyp2
-{-
-{y₁,...,yₙ}
-Max over first m elements
-m = 1: y₁
-m = k + 1: 
-
-f : Fin (suc (suc n-1)) → ℝ
-g : Fin (suc n-1) → ℝ
-
-Probably don't need this
--}
-
--- Maybe we could use this shortening for sigma indices:
--- Fin2 : ℕ → Set
--- Fin2 n-1 = Σ ℕ (λ k → k ℕ.≤ n-1)
-
---into RealProperties?
-a-b<c⇒a<c+b : ∀ {a b c : ℝ} → a - b < c → a < c + b
-a-b<c⇒a<c+b {a} {b} {c} hyp = begin-strict
-     a           ≈⟨ solve 2 (λ a b → a ⊜ a ⊖ b ⊕ b) ≃-refl a b ⟩
-     a - b + b   <⟨ +-monoˡ-< b hyp ⟩
-     c + b ∎
-  where open ≤-Reasoning
-
-a-b<c⇒a<b+c : ∀ {a b c : ℝ} → a - b < c → a < b + c
-a-b<c⇒a<b+c {a} {b} {c} hyp = begin-strict
-     a           <⟨ a-b<c⇒a<c+b hyp ⟩
-     c + b       ≈⟨ +-comm c b ⟩
-     b + c       ∎
-  where open ≤-Reasoning
-
-0<ε⇒x<x+ε : ∀ {ε : ℝ} (x : ℝ) → 0ℝ < ε → x < x + ε
-0<ε⇒x<x+ε {ε} x ε>0 = begin-strict
-    x        ≈⟨ ≃-symm (+-identityʳ x) ⟩
-    x + 0ℝ   <⟨ +-monoʳ-< x ε>0 ⟩
-    x + ε    ∎
-  where open ≤-Reasoning
-
-0<ε⇒x-ε<x : ∀ {ε : ℝ} (x : ℝ) → 0ℝ < ε → x - ε < x
-0<ε⇒x-ε<x {ε} x ε>0 = begin-strict
-    x - ε     <⟨ +-monoʳ-< x { - ε} { - 0ℝ} (neg-mono-< {0ℝ} {ε} ε>0) ⟩
-    x - 0ℝ   ≈⟨ solve 1 (λ x → x ⊖ Κ 0ℚᵘ ⊜ x) ≃-refl x ⟩
-    x        ∎
-  where open ≤-Reasoning
-
---based on Nuprl proof at https://www.nuprl.org/LibrarySnapshots/Published/Version1/Mathematics/reals/rmaximum-select_proof_1_2_1_1.html
---maybe to ExtraProperties?
-maxSelect : ∀ (f : ℕ → ℝ) (n : ℕ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → max f n - ε < f i)
-maxSelect f zero ε ε>0 = zero , (begin-strict
-    f 0 - ε       <⟨ 0<ε⇒x<x+ε (f 0 - ε) ε>0 ⟩
-    f 0 - ε + ε   ≈⟨ solve 2 (λ x y → x ⊖ y ⊕ y ⊜ x) ≃-refl (f 0) ε ⟩
-    f 0           ∎)
-  where open ≤-Reasoning
-maxSelect f (suc n) ε ε>0 = [ case₁ , case₂ ]′ eitheror
-  where
-  v : ℝ
-  v = max f n
-  prevproof : ∃ (λ i → v - ε < f i)
-  prevproof = maxSelect f n ε ε>0
-  i : ℕ
-  i = proj₁ prevproof
-
-  eitheror : f (suc n) - f i < ε ⊎ f (suc n) - f i > 0ℝ
-  eitheror = fast-corollary-2-17 (f (suc n) - f i) 0ℝ ε ε>0
-
-  case₁ : f (suc n) - f i < ε →
-      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
-  case₁ hyp = i , (begin-strict
-         v ⊔ f (suc n) - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z v (f (suc n)) (f i + ε) (a-b<c⇒a<c+b (proj₂ prevproof)) (a-b<c⇒a<b+c hyp)) ⟩
-         f i + ε - ε            ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f i) ε ⟩
-         f i                    ∎ )
-    where open ≤-Reasoning
-  case₂ : f (suc n) - f i > 0ℝ →
-      ∃ (λ i₁ → v ⊔ f (suc n) - ε < f i₁)
-  case₂ hyp = suc n , (begin-strict
-         v ⊔ f (suc n) - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z v (f (suc n)) (f (suc n) + ε) lem (0<ε⇒x<x+ε (f (suc n)) ε>0)) ⟩
-         f (suc n) + ε - ε      ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f (suc n)) ε ⟩
-         f (suc n)              ∎)
-    where
-      open ≤-Reasoning
-      lem : v < f (suc n) + ε
-      lem = begin-strict
-          v              <⟨ a-b<c⇒a<c+b (proj₂ prevproof) ⟩
-          f i + ε        <⟨ +-monoˡ-< ε (0<y-x⇒x<y (f i) (f (suc n)) hyp) ⟩
-          f (suc n) + ε  ∎
-
--- A maximum for finite sequences given by sigma indices.
--- For easier proofs, f₀ is ⊔-ed to the rest.
-maxΣ : {n-1 : ℕ} → (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ) → ℝ
-maxΣ {zero} f = f (0 , ℕ.z≤n)
-maxΣ {suc n-2} f = f (0 , ℕ.z≤n) ⊔ maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2)
-
-m≤n-1⇒fm≤maxΣf : {n-1 : ℕ} → (f : (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ)) →
-         (m : Σ ℕ (λ m → m ℕ.≤ n-1)) → f m ≤ maxΣ f
-m≤n-1⇒fm≤maxΣf {zero} f (.zero , ℕ.z≤n) = ≤-refl
-m≤n-1⇒fm≤maxΣf {suc n-2} f (zero , ℕ.z≤n) = x≤x⊔y (f (zero , ℕ.z≤n)) (maxΣ {n-2} λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2))
-m≤n-1⇒fm≤maxΣf {suc n-2} f (suc m-1 , ℕ.s≤s m-1≤n-2) = let ftail = λ (k , k≤n-2) → f (suc k , ℕ.s≤s k≤n-2) in
-                                           ≤-trans (m≤n-1⇒fm≤maxΣf {n-2} ftail (m-1 , m-1≤n-2)) (x≤y⊔x ((maxΣ {n-2} ftail)) (f (zero , ℕ.z≤n)))
-
--- A version of maxSelect for sigma indices.
-maxΣSelect : ∀ {n-1 : ℕ} (f : (Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ)) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → maxΣ f - ε < f i)
-maxΣSelect {zero}    f ε ε>0 = (zero , ℕ.z≤n) , 0<ε⇒x-ε<x {ε} (f (0 , ℕ.z≤n)) ε>0
-maxΣSelect {suc n-1} f ε ε>0 = [ case₁ , case₂ ]′ eitheror
-  where
-  n : ℕ
-  n = suc n-1
-  prevf : Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ
-  prevf = λ (k , k≤n-1) → f (suc k , ℕ.s≤s k≤n-1)
-  v : ℝ
-  v = maxΣ prevf
-  prevproof : ∃ (λ i-1 → v - ε < prevf i-1)       --the index from the induction hypothesis
-  prevproof = maxΣSelect prevf ε ε>0
-
-  i : ℕ
-  i = suc (proj₁ (proj₁ prevproof))
-  iΣ : Σ ℕ (λ k → k ℕ.≤ n)
-  iΣ = i , ℕ.s≤s (proj₂ (proj₁ prevproof))
-
-  -- Agda deduces this by itself
-  -- fiΣ≃prevf[i-1Σ] : f iΣ ≃ prevf (proj₁ prevproof)
-  -- fiΣ≃prevf[i-1Σ] = ≃-refl
-
-  --here we have to take the first element separately, not the last one
-  0Σ : Σ ℕ (λ k → k ℕ.≤ n)
-  0Σ = 0 , ℕ.z≤n
-
-  eitheror : f 0Σ - f iΣ < ε ⊎ f 0Σ - f iΣ > 0ℝ
-  eitheror = fast-corollary-2-17 (f 0Σ - f iΣ) 0ℝ ε ε>0
-
-  case₁ : f 0Σ - f iΣ < ε →
-      ∃ (λ i₁ → f 0Σ ⊔ v - ε < f i₁)
-  case₁ hyp = iΣ , (begin-strict
-         f 0Σ ⊔ v - ε            <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z (f 0Σ) v (f iΣ + ε) ((a-b<c⇒a<b+c hyp)) ((a-b<c⇒a<c+b (proj₂ prevproof)))) ⟩
-         f iΣ + ε - ε            ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f iΣ) ε ⟩
-         f iΣ                    ∎ )
-    where open ≤-Reasoning
-
-  case₂ : f 0Σ - f iΣ > 0ℝ →
-      ∃ (λ i₁ → f 0Σ ⊔ v - ε < f i₁)
-  case₂ hyp = 0Σ , (begin-strict
-         f 0Σ ⊔ v - ε      <⟨ +-monoˡ-< (- ε) (x<z∧y<z⇒x⊔y<z (f 0Σ) v (f 0Σ + ε) ((0<ε⇒x<x+ε (f 0Σ) ε>0)) lem) ⟩
-         f 0Σ + ε - ε      ≈⟨ solve 2 (λ a b → a ⊕ b ⊖ b ⊜ a) ≃-refl (f 0Σ) ε ⟩
-         f 0Σ              ∎)
-    where
-      open ≤-Reasoning
-      lem : v < f 0Σ + ε
-      lem = begin-strict
-          v              <⟨ a-b<c⇒a<c+b (proj₂ prevproof) ⟩
-          f iΣ + ε        <⟨ +-monoˡ-< ε (0<y-x⇒x<y (f iΣ) (f 0Σ) hyp) ⟩
-          f 0Σ + ε  ∎
-
-maxFin : {n-1 : ℕ} → (f : Fin (suc n-1) → ℝ) → ℝ
-maxFin {zero} f    = f (fromℕ 0)
-maxFin {suc n-1} f = maxFin (λ (x : Fin (suc n-1)) → f (inject₁ x)) ⊔ f (fromℕ (suc n-1))
-
-maxFin≃f0⊔rest : {k : ℕ} (g : Fin (suc (suc k)) → ℝ) → maxFin g ≃ g Fin.zero ⊔ maxFin (λ x → g (Fin.suc x))
-maxFin≃f0⊔rest {zero} g = ≃-refl
-maxFin≃f0⊔rest {suc k} g = begin
-    maxFin (λ x → g (inject₁ (inject₁ x))) ⊔
-      g (Fin.suc (inject₁ (fromℕ k)))
-      ⊔ g (Fin.suc (Fin.suc (fromℕ k)))          ≈⟨ ⊔-congʳ {g (Fin.suc (Fin.suc (fromℕ k)))} (maxFin≃f0⊔rest (λ x → g (inject₁ x))) ⟩
-    g Fin.zero ⊔
-      maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
-       g (Fin.suc (Fin.suc (fromℕ k)))           ≈⟨ ⊔-assoc (g Fin.zero) (maxFin (λ x → g (Fin.suc (inject₁ x)))) (g (Fin.suc (Fin.suc (fromℕ k)))) ⟩
-    g Fin.zero ⊔
-      (maxFin (λ x → g (Fin.suc (inject₁ x))) ⊔
-       g (Fin.suc (Fin.suc (fromℕ k))))          ∎
-  where open ≃-Reasoning
-
-m≤n⇒fm≤maxFinf : {m n : ℕ} (f : Fin (suc n) → ℝ) → (m<sucn : m ℕ.< (suc n)) → f (fromℕ< m<sucn) ≤ maxFin f  
-m≤n⇒fm≤maxFinf {zero} {zero} f m<sucn = ≤-refl
-m≤n⇒fm≤maxFinf {zero} {suc n} f m<sucn = ≤-trans (m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) (ℕ.s≤s ℕ.z≤n)) (x≤x⊔y _ _)
-m≤n⇒fm≤maxFinf {suc zero} {zero} f (ℕ.s≤s ())
-m≤n⇒fm≤maxFinf {suc m} {suc n} f (ℕ.s≤s m<sucn) = begin
-           f (Fin.suc (fromℕ< m<sucn))             ≤⟨ m≤n⇒fm≤maxFinf (λ x → f (Fin.suc x)) m<sucn ⟩
-           maxFin (λ x → f (Fin.suc x))                 ≤⟨ x≤y⊔x (maxFin (λ x → f (Fin.suc x))) (f Fin.zero)  ⟩
-           f Fin.zero ⊔ maxFin (λ x → f (Fin.suc x))    ≈⟨ ≃-symm (maxFin≃f0⊔rest f) ⟩
-           maxFin f                                      ∎
-  where open ≤-Reasoning
-
-mFinsn⇒fm≤maxFinf : {n : ℕ} (f : Fin (suc n) → ℝ) (m : Fin (suc n)) → f m ≤ maxFin f
-mFinsn⇒fm≤maxFinf {zero} f Fin.zero = ≤-refl
-mFinsn⇒fm≤maxFinf {suc n} f m = begin
-    f m                                   ≈⟨ ≃-refl₂ (cong f (sym (FinP.fromℕ<-toℕ m (FinP.toℕ<n m)))) ⟩
-    f (fromℕ< {toℕ m} (FinP.toℕ<n m))    ≤⟨ m≤n⇒fm≤maxFinf {toℕ m} {suc n} f (FinP.toℕ<n m) ⟩
-    maxFin f                 ∎
-  where open ≤-Reasoning
-
-finTrunc : ∀ {i} {A : Set i} {n : ℕ} → (Fin (suc n) → A) → (Fin n → A)
-finTrunc f i = f (inject₁ i)
-
-toℕseq : ∀ {i} {A : Set i} {n : ℕ} (f : Fin n → A) (def : A) → (ℕ → A)
-toℕseq {n = zero}  f def k = def
-toℕseq {n = suc n} f def zero = f Fin.zero
-toℕseq {n = suc n} f def (suc k) = toℕseq {n = n} (λ j → f (Fin.suc j)) def k
-{-with k ℕP.≤? n
-...          | Bool.true  because ofʸ  k≤n = f (fromℕ< {k} (ℕ.s≤s k≤n))
-...          | Bool.false because ofⁿ k≮n = def-}
-
-toℕseqEq : ∀ {i} {A : Set i} {n : ℕ} (f : Fin n → A) → {k : ℕ} → (k<n : k ℕ.< n) → (def : A) → toℕseq {n = n} f def k ≡ f (fromℕ< k<n)
-toℕseqEq {n = zero} f {k} () def
-toℕseqEq {n = suc n} f {zero} k<sucn def = refl
-toℕseqEq {n = suc n} f {suc k} k<sucn def = toℕseqEq {n = n} (λ j → f (Fin.suc j)) {k} (ℕ.≤-pred k<sucn) def
-{-with k ℕP.≤? n
-...          | Bool.true  because ofʸ  k≤n = cong (λ p → f (fromℕ< p)) (ℕP.≤-irrelevant (ℕ.s≤s k≤n) k<sucn) 
-...          | Bool.false because ofⁿ k≮n = ⊥-elim (k≮n (ℕ.≤-pred k<sucn))-}
-
-toℕseqEqDef : ∀ {i} {A : Set i} {n : ℕ} (f : Fin n → A) → {k : ℕ} → (k<n : k ℕ.≥ n) → (def : A) → toℕseq {n = n} f def k ≡ def
-toℕseqEqDef {n = zero} _ {_} _ _ = refl
-toℕseqEqDef {n = suc n} f {suc k} sk≥sn def = toℕseqEqDef (λ j → f (Fin.suc j)) {k} (ℕ.≤-pred sk≥sn) def
-
--- for steppings:
-toℕseqInjectEq : ∀ {i} {A : Set i} {m n : ℕ} → (a : Fin (suc n) → A) →  m ℕ.< n → (defAft : A) → toℕseq {n = n} (λ i₁ → a (inject₁ i₁)) defAft m ≡ toℕseq a defAft m
-toℕseqInjectEq {m = zero} {n = suc n} a m<n defAft = refl
-toℕseqInjectEq {m = suc m} {n = suc n} a m<n defAft = toℕseqInjectEq (λ j → a (Fin.suc j)) (ℕP.≤-pred m<n) defAft
-
---here n<sucn is provided in order for it to work for any proof
-fromℕ-fromℕ< : ∀ (n : ℕ) → fromℕ n ≡ fromℕ< {n} (ℕP.n<1+n n)
-fromℕ-fromℕ< zero = refl
-fromℕ-fromℕ< (suc n) = cong Fin.suc (fromℕ-fromℕ< n)
-
-ℕize : ∀ {i j} {A : Set i} {B : Set j} {n : ℕ} → ((Fin n → B) → A) → ((ℕ → B) → A)
-ℕize {n = n} f a = f (λ i → a (toℕ i))
-
-foldlSeq : ∀ {i j} {A : Set i} {B : Set j} → (A → B → A) → A → (ℕ → B) → ℕ → A
-foldlSeq op def f zero = def
-foldlSeq op def f (suc n) = op (foldlSeq op def f n) (f n)
-
-foldlFin : ∀ {i j} {A : Set i} {B : Set j} {n : ℕ} → (A → B → A) → A → (Fin n → B) → A
-foldlFin {n = zero} op def a = def
-foldlFin {n = suc n} op def a = op (foldlFin {n = n} op def (λ i → a (inject₁ i))) (a (fromℕ n))
-
-foldlFinSeqEq : ∀ {i j} {A : Set i} {B : Set j} {n : ℕ} (op : A → B → A) (def : A) (a : Fin n → B) (defAft : B) →
-          foldlFin op def a ≡ foldlSeq op def (toℕseq a defAft) n
-foldlFinSeqEq {n = zero} op def a _ = refl
-foldlFinSeqEq {n = suc n} op def a defAft = trans (cong (λ x → op x (a (fromℕ n))) (trans (foldlFinSeqEq op def (λ i₁ → a (inject₁ i₁)) defAft) (lem₁ n ℕP.≤-refl)))
-                                                (cong (λ x → op (foldlSeq op def (λ k → toℕseq a defAft k) n) x)
-                                                 (trans (cong a (fromℕ-fromℕ< n)) (sym (toℕseqEq a (ℕP.n<1+n n) defAft))))
-  where
-  lem₁ : ∀ (m : ℕ) → m ℕ.≤ n → foldlSeq op def (toℕseq (λ i₁ → a (inject₁ i₁)) defAft) m ≡ foldlSeq op def (λ k → toℕseq a defAft k) m
-  lem₁ zero    _ = refl
-  lem₁ (suc m) sucm≤n = trans (cong (λ x → op (foldlSeq op def (toℕseq (λ i₁ → a (inject₁ i₁)) defAft) m) x) (toℕseqInjectEq a sucm≤n defAft))
-                            (cong (λ x → op x (toℕseq a defAft m)) (lem₁ m
-                                                                    (ℕP.≤-trans (ℕP.n≤1+n m) sucm≤n)))
-
---to ExtraProperties?
-ℚx⊔x≃x : ∀ (x : ℚᵘ) → x ℚ.⊔ x ≡ x
-ℚx⊔x≃x x with x ℚ.≤ᵇ x
-ℚx⊔x≃x x | Bool.true = refl
-ℚx⊔x≃x x | Bool.false = refl
-
---to RealProperties?
-x⊔x≃x : ∀ (x : ℝ) → x ⊔ x ≃ x
-x⊔x≃x x = *≃* λ {(suc n) → begin
-      ℚ.∣ seq x (suc n) ℚ.⊔ seq x (suc n) ℚ.- seq x (suc n) ∣   ≈⟨ ℚP.∣-∣-cong (ℚP.+-congˡ (ℚ.- seq x (suc n)) (ℚP.≃-reflexive (ℚx⊔x≃x (seq x (suc n))))) ⟩
-      ℚ.∣ seq x (suc n) ℚ.- seq x (suc n) ∣                      ≈⟨ ℚP.∣-∣-cong (ℚP.p≃q⇒p-q≃0 (seq x (suc n)) (seq x (suc n)) ℚP.≃-refl) ⟩
-      0ℚᵘ                                                       ≤⟨ ℚ.*≤* (ℤ.+≤+ ℕ.z≤n) ⟩
-      + 2 / (suc n)                                            ∎}
-  where
-  open ℚP.≤-Reasoning
-
-max≃foldl⊔ : ∀ (f : ℕ → ℝ) (n : ℕ) → max f n ≃ foldlSeq _⊔_ (f zero) f (suc n)
-max≃foldl⊔ f zero = ≃-symm (x⊔x≃x (f 0))
-max≃foldl⊔ f (suc n) = ⊔-congʳ {f (suc n)} (max≃foldl⊔ f n)
-
-maxFin≃foldl⊔ : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) → maxFin f ≃ foldlFin _⊔_ (f Fin.zero) f
-maxFin≃foldl⊔ {zero} f = ≃-symm (x⊔x≃x (f Fin.zero))
-maxFin≃foldl⊔ {suc n} f = ⊔-congʳ {f (Fin.suc (fromℕ n))} (maxFin≃foldl⊔ (λ x → f (inject₁ x)))
-
-minFin : {n : ℕ} → (Fin (suc n) → ℝ) → ℝ
-minFin f = foldlFin _⊓_ (f Fin.zero) f
-
-toℕseqmax : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (defAft : ℝ) → max (toℕseq {n = suc n} f defAft) n ≃ maxFin f
-toℕseqmax {n} f defAft = begin
-        max (toℕseq {n = suc n} f defAft) n    ≈⟨ max≃foldl⊔ (toℕseq {n = suc n} f defAft) n ⟩
-        foldlSeq _⊔_ (f Fin.zero) (toℕseq {n = suc n} f defAft) (suc n)  ≈⟨ ≃-refl₂ (sym (foldlFinSeqEq _⊔_ (f Fin.zero) f defAft)) ⟩
-        foldlFin _⊔_ (f Fin.zero) f                                                 ≈⟨ ≃-symm (maxFin≃foldl⊔ f) ⟩
-        maxFin f ∎
-  where open ≃-Reasoning
-{-
-this also proved _≡_, but used old definition of toℕseq and was _very_ dirty
-toℕseqmax {zero} f = refl
-toℕseqmax {suc n} f = trans (cong (max (toℕseq f (f Fin.zero - 1ℝ)) n ⊔_) part₁) (cong (_⊔ f (Fin.suc (fromℕ n))) part₂)
-  where
-  part₁ : toℕseq f (f Fin.zero - 1ℝ) (suc n) ≡ f (Fin.suc (fromℕ n))
-  part₁ = trans (toℕseqEq f ℕP.≤-refl (f Fin.zero - 1ℝ)) (cong (λ x → f (Fin.suc x)) (sym (fromℕ-fromℕ< n)))
-  part₂ : max (toℕseq f (f Fin.zero - 1ℝ)) n ≡ maxFin (λ x → f (inject₁ x))
-  part₂ = trans (lem (ℕP.≤-refl {suc n})) (toℕseqmax (λ x → f (inject₁ x)))
-    where
-    lem : ∀ {k : ℕ} (k<sucn : k ℕ.< suc n) → max (toℕseq f (f Fin.zero - 1ℝ)) k ≡ max (toℕseq (λ x → f (inject₁ x)) (f Fin.zero - 1ℝ)) k
-    lem {zero} k<sucn = refl
-    lem {suc k-1} k<sucn = trans (cong (_⊔ toℕseq f (f Fin.zero - 1ℝ) (suc k-1)) (lem {k-1} {!!})) (cong (max (toℕseq (λ x → f (inject₁ x)) (f Fin.zero - 1ℝ)) k-1 ⊔_) lem₂)
-      where
-      lem₂ : toℕseq f (f Fin.zero - 1ℝ) (suc k-1) ≡ toℕseq (λ x → f (inject₁ x)) (f Fin.zero - 1ℝ) (suc k-1)
-      lem₂ = {!toℕseqInjectEq!} {-with (suc k-1) ℕP.≤? n               | k-1 ℕP.<? (suc n)
-      ...          | Bool.true  because ofʸ  k≤n | Bool.true  because ofʸ  k≤sucn = cong (λ i → f (Fin.suc i)) {!yetAnotherLem k n!}
-      ...          | Bool.true  because ofʸ  k≤n | Bool.false because ofⁿ  k≮sucn = ⊥-elim (k≮sucn (≤-step k≤n))
-      ...          | Bool.false because ofⁿ k≮n |  _                             = ⊥-elim (k≮n (ℕ.≤-pred k<sucn))-}
--}
-
-maxFinSelect : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → maxFin f - ε < f i)
-maxFinSelect {n} f ε ε>0 = iFin , (begin-strict
-          maxFin f - ε       ≈⟨ lem ⟩
-          max fℕ n - ε       <⟨ proj₂ other ⟩
-          fℕ i              ≈⟨ ≃-refl₂ (toℕseqEq f i<sucn def) ⟩
-          f iFin            ∎)
-  where
-  open ≤-Reasoning
-  def : ℝ
-  def = maxFin f - ε - ε
-  fℕ : ℕ → ℝ
-  fℕ = toℕseq {n = suc n} f def
-  lem : maxFin f - ε ≃ max fℕ n - ε
-  lem = +-congˡ (- ε) (≃-symm (toℕseqmax {n} f def))
-  other : ∃ (λ i → max fℕ n - ε < fℕ i)
-  other = maxSelect fℕ n ε ε>0
-  i : ℕ
-  i = proj₁ other
-  i<sucn : i ℕ.< suc n
-  i<sucn = ℕP.≰⇒> (λ sucn≤i → <⇒≱ (proj₂ other) (begin
-     toℕseq f def i             ≈⟨ ≃-refl₂ (toℕseqEqDef f sucn≤i def) ⟩
-     maxFin f - ε - ε {-def-}   ≤⟨ <⇒≤ (0<ε⇒x-ε<x (maxFin f - ε) ε>0) ⟩
-     maxFin f - ε               ≈⟨ lem ⟩
-     max fℕ n - ε               ∎))
-     where open ≤-Reasoning
-  iFin : Fin (suc n)
-  iFin = fromℕ< {i} i<sucn
-
--- minFinSelect : ∀ {n : ℕ} (f : Fin (suc n) → ℝ) (ε : ℝ) → ε > 0ℝ → ∃ (λ i → minFin f + ε > f i)
--- minFinSelect = {!!}
-
-{-
-F : Fin 3 → ℝ
-F Fin.zero = 0ℝ
-F (Fin.suc Fin.zero) = 1ℝ
-F (Fin.suc (Fin.suc Fin.zero)) = (+ 2 / 1) ⋆
-
-G : Fin 2 → ℝ
-G Fin.zero = 0ℝ
-G (Fin.suc Fin.zero) = 1ℝ
-
-H : Fin 1 → ℝ
-H Fin.zero = 0ℝ
-
-{-
-maxFin {2} F = maxFin () ⊔ F 2
--}
-
-test : {!!}
-test = {!!}
--}
 
 abstract
   _fast-≤?_ : Relation.Binary.Decidable ℕ._≤_
@@ -855,9 +501,6 @@ abstract
   fast-p<q⇒p⋆<q⋆ = p<q⇒p⋆<q⋆
 
 {-
-max : (ℕ → ℝ) → (n : ℕ) → ?
-max f n = ?
-
 Proposition:
   A totally bounded subset A of ℝ is bounded above.
 Proof:
@@ -878,9 +521,9 @@ totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x
     open ≤-Reasoning
     PT-get = PT 1ℝ (fast-p<q⇒p⋆<q⋆ 0ℚᵘ 1ℚᵘ (ℚP.positive⁻¹ _))
     n-1 = proj₁ PT-get
-    f𝕊 : Σ ℕ (λ k → k ℕ.≤ n-1) → 𝕊 P
+    f𝕊 : SigInd n-1 → 𝕊 P
     f𝕊 = proj₁ (proj₂ PT-get)
-    f : Σ ℕ (λ k → k ℕ.≤ n-1) → ℝ
+    f : SigInd n-1 → ℝ
     f k = proj₁ (f𝕊 k)
 
     ≤-same : {m m' : ℕ} → (p p' : m ℕ.≤ m') → p ≡ p'
@@ -889,9 +532,6 @@ totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x
 
     M : ℝ
     M = maxΣ f
-
-    -- k<n⇒k≤n-1 : ∀ {k : ℕ} → k ℕ.< n → k ℕ.≤ n-1
-    -- k<n⇒k≤n-1 (ℕ.s≤s uneq) = uneq
 
 {-
 Choose a₁,...,aₙ∈A such that for each a∈A at least
@@ -970,17 +610,17 @@ corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNo
     N-1 N : ℕ
     N-1 = proj₁ pack
     N = suc N-1
-    as𝕊 : Σ ℕ (λ k → k ℕ.≤ N-1) → 𝕊 P
+    as𝕊 : SigInd N-1 → 𝕊 P
     as𝕊 = proj₁ (proj₂ pack)
-    as : Σ ℕ (λ k → k ℕ.≤ N-1) → ℝ
+    as : SigInd N-1 → ℝ
     as k = proj₁ (as𝕊 k)
-    proofforas : (X : 𝕊 P) → ∃ (λ (k : Σ ℕ (λ k → k ℕ.≤ N-1)) →  ∣ proj₁ X - as k ∣ < α)
+    proofforas : (X : 𝕊 P) → ∃ (λ (k : SigInd N-1) →  ∣ proj₁ X - as k ∣ < α)
     proofforas = proj₂ (proj₂ pack)
 
     --here we need the maximum as 𝕊 P
     ∃n : ∃ (λ n → as n > maxΣ as - α)
     ∃n = maxΣSelect {N-1} as α α>0
-    n : Σ ℕ (λ n → n ℕ.≤ N-1)
+    n : SigInd N-1
     n = proj₁ ∃n
     an : ℝ
     an = as n
@@ -1019,9 +659,9 @@ corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNo
         open ≤-Reasoning
         a : ℝ
         a = proj₁ sa
-        kp : ∃ (λ (k : Σ ℕ (λ k → k ℕ.≤ N-1)) → ∣ a - as k ∣ < α)
+        kp : ∃ (λ (k : SigInd N-1) → ∣ a - as k ∣ < α)
         kp = proofforas sa
-        k : Σ ℕ (λ k → k ℕ.≤ N-1)
+        k : SigInd N-1
         k = proj₁ kp
         ak : ℝ
         ak = as k
@@ -1095,42 +735,6 @@ idIsContinuous D = contOn* ((λ ε → ε) , λ ε x y ∣x-y∣≤ε → ∣x-y
 inRangeOf : {A : Set} (f : A → ℝ) → (ℝ → Set)
 inRangeOf f = λ y → ∃ λ x → f x ≃ y
 
--- maybe this would be useful?
-ℕn : ℕ → Set
-ℕn n = Σ ℕ (λ i → i ℕ.< n)
-
-
-
-
-{-
--- Now the Fin version.
-fullPartition : (D : CompactInterval) (n : ℕ) {n≢0 : n ≢0} → (Fin (suc n) → D ↓)
-fullPartition D (suc n-1) i = fullPartitionℕ D (suc n-1) {tt} {toℕ i} (FinP.toℕ<n {suc (suc n-1)} i)
-{-
-fullPartition D (suc n-1) i = CIlower D + (+ (toℕ i) / n) ⋆ * (CIupper D - CIlower D) ,
-                                                  0≤x⇒y≤y+x a (0≤x,y⇒0≤x*y (nonNegx⇒0≤x (nonNegp⇒nonNegp⋆ (+ (toℕ i) / n) tt)) d≥0) ,
-                                                  (begin
-                                                  a + (+ (toℕ i) / n) ⋆ * d     ≤⟨ +-monoʳ-≤ a (*-monoʳ-≤-nonNeg {(+ (toℕ i) / n) ⋆} {d} {(+ n / n) ⋆}
-                                                                                               (p≤q⇒p⋆≤q⋆ (+ (toℕ i) / n) (+ n / n) (p≤q⇒p/r≤q/r (+ (toℕ i)) (+ n) n (ℤ.+≤+ (ℕ.≤-pred (FinP.toℕ<n i)))))
-                                                                                               (0≤x⇒nonNegx d≥0)) ⟩
-                                                  a + (+ n       / n) ⋆ * d     ≈⟨ +-congʳ a (*-congʳ {d} (⋆-cong (ℚ.*≡* (cong +[1+_] (trans (ℕP.*-identityʳ n-1) (sym (ℕP.+-identityʳ n-1))))))) ⟩
-                                                  a +                1ℝ * d     ≈⟨ solve 2 (λ a b → a ⊕ Κ 1ℚᵘ ⊗ (b ⊖ a) ⊜ b) ≃-refl a b ⟩
-                                                  b                             ∎)
-  where
-  open ≤-Reasoning
-  n : ℕ
-  n = suc n-1
-  a b d : ℝ
-  a = CIlower D ; b = CIupper D ; d = b - a
-
-  d≥0 : d ≥ 0ℝ
-  d≥0 = begin
-     0ℝ     ≈⟨ solve 1 (λ a → Κ 0ℚᵘ ⊜ a ⊖ a) ≃-refl a ⟩
-     a - a  ≤⟨ +-monoˡ-≤ (- a) (CIlower≤upper D) ⟩
-     b - a  ∎
--}
--}
-
 contOnD⇒totallyBounded : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (a<b : CIlower D < CIupper D) →
     inRangeOf f isTotallyBounded
 contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) a<b 2ε 2ε>0 = n , fas𝕊 , mainPart
@@ -1155,14 +759,14 @@ contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) a<b 2ε 2ε>0 = n , fas�
   d = (b - a) * (+ 1 / n) ⋆
   d>0 : d > 0ℝ
   d>0 = 0<x,y⇒0<x*y {b - a} {(+ 1 / n)⋆} (x<y⇒0<y-x a b a<b) (posx⇒0<x (0<p⇒0<p⋆ (+ 1 / n) tt))
-  asd : Σ ℕ (λ k → k ℕ.≤ n)  → D ↓
-  asd (k , k≤n) = fullPartitionℕ D n {tt} {k} k≤n
-  as : Σ ℕ (λ k → k ℕ.≤ n)  → ℝ
+  asd : SigInd n  → D ↓
+  asd (k , k≤n) = fullPartition D n {tt} {k} k≤n
+  as : SigInd n → ℝ
   as k = proj₁ (asd k)
-  fas𝕊 : Σ ℕ (λ k → k ℕ.≤ n) → 𝕊 (inRangeOf f)
+  fas𝕊 : SigInd n → 𝕊 (inRangeOf f)
   fas𝕊 k = f (asd k) , asd k , ≃-refl
 
-  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (i : Σ ℕ (λ i → i ℕ.≤ n)) → ∣ proj₁ y - proj₁ (fas𝕊 i) ∣ < 2ε)
+  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (i : SigInd n) → ∣ proj₁ y - proj₁ (fas𝕊 i) ∣ < 2ε)
   mainPart (y , x , fx≃y) = i , (begin-strict
            ∣ y - proj₁ (fas𝕊 i) ∣        ≈⟨ ∣-∣-cong (+-congˡ (- f (asd i)) {y} {f x} (≃-symm fx≃y)) ⟩
           ∣ f x - f (asd i) ∣            ≤⟨ hyp ε⁺ x (asd i) (<⇒≤ {∣ proj₁ x - proj₁ (asd i) ∣} {proj₁ (ω ε⁺)} iInRadius) ⟩
@@ -1179,10 +783,10 @@ contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) a<b 2ε 2ε>0 = n , fas�
     -}
 
     --this should rather be solved with fullPartition-[x-aᵢ]<d/n
-    pointNearApp : ∃ λ (i : Σ ℕ (λ i → i ℕ.≤ n)) →
+    pointNearApp : ∃ λ (i : SigInd n) →
             ∣ as i - proj₁ x ∣ < ((+ 1 / n)) ⋆ * (b - a)
-    pointNearApp = fullPartitionℕ-pointNear D a<b n x
-    i : Σ ℕ (λ i → i ℕ.≤ n)
+    pointNearApp = fullPartition-pointNear D a<b n x
+    i : SigInd n
     i = proj₁ pointNearApp
     iInRadius : ∣ proj₁ x - as i ∣ < proj₁ (ω ε⁺)
     iInRadius = begin-strict
