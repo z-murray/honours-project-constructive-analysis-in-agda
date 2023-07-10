@@ -38,6 +38,7 @@ open import Real
 open import RealProperties
 open import Inverse
 open import Sequence
+-- open import FastPow
 
 -- A function which creates a real number equal to p⋆, but with a more complex definition than the original one.
 -- Needed because when using _⋆, Agda can sometimes simplify calculations and things can terminate that otherwise cannot.
@@ -114,3 +115,10 @@ test-proposition-3-6-1 = ↧ₙ (seq (proj₁ (proposition-3-6-1 {series} {(+ 1 
   series zero = 1ℝ
   series (suc n) = (+ 1 / 3)⋆ * series n
 -- gets stuck
+
+pow-test : ℕ
+pow-test = ↧ₙ (seq (pow (strangify (+ 1 / 2)) 10) 100)
+-- gets stuck
+
+-- fast-pow-test : ℕ
+-- fast-pow-test = ↧ₙ (seq (fast-pow (strangify (+ 1 / 2)) 10) 100)
