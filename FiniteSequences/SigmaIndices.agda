@@ -1,5 +1,6 @@
 -- Here, Σ ℕ (λ k → k ℕ.≤ n) is used instead of Fin as an index type.
 -- It's uglier but much easier to handle.
+-- This is what we are going to use in Interval.agda and Continuity.agda.
 
 {-# OPTIONS --without-K --safe #-}
 open import Algebra
@@ -38,6 +39,8 @@ open import RealProperties
 
 module FiniteSequences.SigmaIndices where
 
+-- Chose _≤_ because m < n is simply defined as suc m ≤ n, and this would make proofs a bit uglier.
+-- Of course, a disadvantage is that there isn't a cognate for Fin 0. But for our applications, this doesn't usually mean a problem.
 SigInd : ℕ → Set
 SigInd n = Σ ℕ (λ k → k ℕ.≤ n)
 
