@@ -1,4 +1,3 @@
-
 -- Proof of the alternating series test
 
 {-# OPTIONS --without-K --safe #-}

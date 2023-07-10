@@ -136,7 +136,7 @@ record CompactInterval : Set where
   field
     CIlower            : ℝ
     CIupper            : ℝ
-    CIlower≤upper      : CIlower ≤ CIupper  -- for some reason, it wants to figure out what this can be at isContinuousOnD and becomes yellow
+    CIlower≤upper      : CIlower ≤ CIupper
 open CompactInterval public
 
 _↓ : CompactInterval → Set
@@ -306,7 +306,7 @@ What about working in (a - ε, b + ε) for some arbitrary ε > 0?
 
 fullPartition-pointNear :  ∀ (D : CompactInterval) (a<b : CIlower D < CIupper D) (n : ℕ) {n≢0 : n ≢0} (xd : D ↓) →
           ∃ λ (sk : SigInd n) →
-            ∣ proj₁ (fullPartition D n {n≢0} (proj₂ sk)) - proj₁ xd ∣ < ((+ 1 / n) {n≢0}) ⋆ * (CIupper D - CIlower D)   -- ∣ proj₁ (fullPartition D n {n≢0} {zero} (≤-step {!!}) ) - proj₁ xd ∣ < 
+            ∣ proj₁ (fullPartition D n {n≢0} (proj₂ sk)) - proj₁ xd ∣ < ((+ 1 / n) {n≢0}) ⋆ * (CIupper D - CIlower D)
 fullPartition-pointNear D a<b (suc n-1) (x , prx) = [ rec {n} {ℕP.≤-refl} , rightEnd ]′ (corollary-2-17 x aₙ₋₁ aₙ
                                                                                                          (begin-strict
                                                                                                                 aₙ₋₁        ≈⟨ ≃-symm (+-identityʳ aₙ₋₁) ⟩
