@@ -30,7 +30,6 @@ open import Data.List
 open import Function.Structures {_} {_} {_} {_} {ℕ} _≡_ {ℕ} _≡_
 open import Agda.Builtin.Unit
 open import Level using (Level)
-open import Data.Fin.Base using (Fin; fromℕ; fromℕ<; fromℕ≤; toℕ; inject₁)
 
 {-
 The solvers are used and renamed often enough to warrant them being opened up here
@@ -62,12 +61,9 @@ open import Real
 open import RealProperties
 open import Inverse
 open import Sequence
+open import Interval
+open import FiniteSequences.SigmaIndices
 open ℝ-Solver
-
--- Syntax I like better for product type representations of subsets
--- Not a fan of the normal syntax and ∃ is pretty irrelevant for this usage
-𝕊 : {A : Set} (P : Pred A 0ℓ) → Set
-𝕊 {A} P = Σ A P
 
 -- Should I be using this I wonder? Instead of stuff like (ε : ℝ) → ε > 0ℝ → ⋯
 ℝ⁺ : Set
@@ -111,70 +107,6 @@ P hasInfimum l = P isBoundedBelowBy l × ((ε : ℝ) → ε > 0ℝ → ∃ λ (x
 
 _hasInfimum : (P : Pred ℝ 0ℓ) → Set
 P hasInfimum = ∃ λ l → P hasInfimum l
-
-data IntervalKind : Set where
-  ⦅_,_⦆  : (a b : ℝ) → IntervalKind
-  ⦅_,_⟧  : (a b : ℝ) → IntervalKind
-  ⟦_,_⦆  : (a b : ℝ) → IntervalKind
-  ⟦_,_⟧  : (a b : ℝ) → IntervalKind
-  ⦅-∞,_⦆ : (b : ℝ)   → IntervalKind
-  ⦅-∞,_⟧ : (b : ℝ)   → IntervalKind
-  ⦅_,∞⦆  : (a : ℝ)   → IntervalKind
-  ⟦_,∞⦆  : (a : ℝ)   → IntervalKind
-
--- Interval semantics
-IntervalPred : IntervalKind → Pred ℝ 0ℓ
-IntervalPred ⦅ a , b ⦆ x = a < x < b
-IntervalPred ⦅ a , b ⟧ x = a < x ≤ b
-IntervalPred ⟦ a , b ⦆ x = a ≤ x < b
-IntervalPred ⟦ a , b ⟧ x = a ≤ x ≤ b
-IntervalPred ⦅-∞, b ⦆  x = x < b
-IntervalPred ⦅-∞, b ⟧  x = x ≤ b
-IntervalPred ⦅ a ,∞⦆   x = a < x
-IntervalPred ⟦ a ,∞⦆   x = a ≤ x
-
--- Syntactic sugar for intervals as sets
--- So now each interval is a record type (as was originally desired) but induction on the kinds of intervals
--- is still possible via IntervalKind.
--- It's kind of annoying to specify the IntervalKind all of the time, and have to write an interval as Interval ⦅ a , b ⦆.
--- It would be much better if I could refer to intervals without the Interval word constructing the set.
--- Also, wouldn't it be useful if, when constructing some type (like this one), we could choose a default "piece" of the
--- type to perform induction on? I'm going to be doing induction on IntervalKind whenever I need to prove some basic
--- property about intervals, but it's annoying to specify IntervalKind all of the time. It would be cool if I could specify,
--- in this definition below, the default type to perform induction on for Interval.
-Interval : (IK : IntervalKind) → Set
-Interval IK = 𝕊 (IntervalPred IK)
-
-{-
-How about this definition:
-
-data IntervalKind : Set where
-  open-open     : (a b : ℝ) → IntervalKind
-  open-closed   : (a b : ℝ) → IntervalKind
-  closed-open   : (a b : ℝ) → IntervalKind
-  closed-closed : (a b : ℝ) → IntervalKind
-
-IntervalPred : (IK : IntervalKind) → Pred ℝ 0ℓ
-IntervalPred (open-open a b)     = (x : ℝ) → a < x < b 
-IntervalPred (open-closed a b)   = (x : ℝ) → a < x ≤ b
-IntervalPred (closed-open a b)   = (x : ℝ) → a ≤ x < b
-IntervalPred (closed-closed a b) = (x : ℝ) → a ≤ x ≤ b
-
-⦅_,_⦆ : (a b : ℝ) → Set
-⦅ a , b ⦆ = 𝕊 (IntervalPred open-open a b)
-
-⦅_,_⟧ : (a b : ℝ) → Set
-⦅ a , b ⟧ = 𝕊 (IntervalPred open-closed a b)
-
-⟦_,_⦆ : (a b : ℝ) → Set
-⟦ a , b ⦆ = 𝕊 (IntervalPred closed-open a b)
-
-⟦_,_⟧ : (a b : ℝ) → Set
-⟦ a , b ⟧ = 𝕊 (IntervalPred closed-closed a b)
-
-
-
--}
 
 proposition-4-3-onlyif : {P : Pred ℝ 0ℓ} → P hasSupremum →
                          {x y : ℝ} → x < y → P isBoundedAboveBy y ⊎ ∃ λ a → P a × x < a
@@ -521,8 +453,8 @@ Change to n instead of suc n-1
 -}
 
 _isTotallyBounded : Pred ℝ 0ℓ → Set
-P isTotallyBounded = (ε : ℝ) → ε > 0ℝ → ∃ λ (n-1 : ℕ) → ∃ λ (f : Fin (suc n-1) → 𝕊 P) →
-                     (X : 𝕊 P) → ∃ λ (k : Σ ℕ λ m → m ℕ.< suc n-1) → ∣ proj₁ X - proj₁ (f (fromℕ< (proj₂ k))) ∣ < ε
+P isTotallyBounded = (ε : ℝ) → ε > 0ℝ → ∃ λ (n-1 : ℕ) → ∃ λ (f : SigInd n-1 → 𝕊 P) →
+                     (X : 𝕊 P) → ∃ λ (k : SigInd n-1) → ∣ proj₁ X - proj₁ (f k) ∣ < ε
 
 z<x⊔y⇒z<x∨z<y : {x y z : ℝ} → z < x ⊔ y → (z < x) ⊎ (z < y)
 z<x⊔y⇒z<x∨z<y {x} {y} {z} (pos* (n-1 , hyp)) = [ left , right ]′ (ℚP.≤-total x₂ₙ y₂ₙ)
@@ -558,50 +490,6 @@ z<max⦅xᵢ⦆⇒z<xⱼ {z} {f} {suc n-1} hyp = [ left , right ]′ (z<x⊔y⇒
 
     right : z < f n → ∃ λ k → k ℕ.≤ n × z < f k
     right hyp2 = n , ℕP.≤-refl , hyp2
-{-
-{y₁,...,yₙ}
-Max over first m elements
-m = 1: y₁
-m = k + 1: 
-
-f : Fin (suc (suc n-1)) → ℝ
-g : Fin (suc n-1) → ℝ
-
-Probably don't need this
--}
-maxFin : {n-1 : ℕ} → (f : Fin (suc n-1) → ℝ) → ℝ
-maxFin {zero} f    = f (fromℕ 0)
-maxFin {suc n-1} f = maxFin (λ (x : Fin (suc n-1)) → f (inject₁ x)) ⊔ f (fromℕ (suc n-1))
-
-{-
-
--}
-m≤n⇒fm≤maxFinf : {m n : ℕ} (f : Fin (suc n) → ℝ) → (m≤n : m ℕ.≤ n) → f (fromℕ< (ℕ.s≤s m≤n)) ≤ maxFin f  
-m≤n⇒fm≤maxFinf {zero} {zero} f m≤n = ≤-refl
-m≤n⇒fm≤maxFinf {zero} {suc n} f m≤n = ≤-trans (m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) ℕ.z≤n) (x≤x⊔y _ _)
-m≤n⇒fm≤maxFinf {suc m} {zero} f ()
-m≤n⇒fm≤maxFinf {suc m} {suc n} f (ℕ.s≤s m≤n) = {!m≤n⇒fm≤maxFinf (λ x → f (inject₁ x)) m≤n!}
-
-{-
-F : Fin 3 → ℝ
-F Fin.zero = 0ℝ
-F (Fin.suc Fin.zero) = 1ℝ
-F (Fin.suc (Fin.suc Fin.zero)) = (+ 2 / 1) ⋆
-
-G : Fin 2 → ℝ
-G Fin.zero = 0ℝ
-G (Fin.suc Fin.zero) = 1ℝ
-
-H : Fin 1 → ℝ
-H Fin.zero = 0ℝ
-
-{-
-maxFin {2} F = maxFin () ⊔ F 2
--}
-
-test : {!!}
-test = {!!}
--}
 
 abstract
   _fast-≤?_ : Relation.Binary.Decidable ℕ._≤_
@@ -613,9 +501,6 @@ abstract
   fast-p<q⇒p⋆<q⋆ = p<q⇒p⋆<q⋆
 
 {-
-max : (ℕ → ℝ) → (n : ℕ) → ?
-max f n = ?
-
 Proposition:
   A totally bounded subset A of ℝ is bounded above.
 Proof:
@@ -626,61 +511,27 @@ x = x - yₖ + yₖ
 so 1 + M is an upper bound of A.                                                            □
 -}
 totallyBounded⇒boundedAbove : {P : Pred ℝ 0ℓ} → P isTotallyBounded → P isBoundedAbove
-totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x∈P; k<n = proj₁ (proj₂ (proj₂ PT-get) x∈P); k = proj₁ k<n
-                                                            ; yₖ = proj₁ (proj₁ (proj₂ PT-get) (fromℕ< (proj₂ k<n))) in
+totallyBounded⇒boundedAbove {P} PT = 1ℝ + M , λ x∈P → let x = proj₁ x∈P; k≤n-1 = proj₁ (proj₂ (proj₂ PT-get) x∈P); k = proj₁ k≤n-1 ; fₖ = f k≤n-1 in
   begin
-  x           ≈⟨ solve 2 (λ x yₖ → x ⊜ x ⊖ yₖ ⊕ yₖ) ≃-refl x yₖ ⟩
-  x - yₖ + yₖ ≤⟨ +-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
-                 {!!} ⟩
-  --+-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
-                        --  (m≤n⇒fm≤maxfn y {!!} {!!} {!!}) ⟩
+  x           ≈⟨ solve 2 (λ x fₖ → x ⊜ x ⊖ fₖ ⊕ fₖ) ≃-refl x fₖ ⟩
+  x - fₖ + fₖ ≤⟨ +-mono-≤ (<⇒≤ (≤-<-trans x≤∣x∣ (proj₂ (proj₂ (proj₂ PT-get) x∈P))))
+                 (m≤n-1⇒fm≤maxΣf {n-1} f k≤n-1) ⟩
   1ℝ + M       ∎
   where
     open ≤-Reasoning
     PT-get = PT 1ℝ (fast-p<q⇒p⋆<q⋆ 0ℚᵘ 1ℚᵘ (ℚP.positive⁻¹ _))
-    n = suc (proj₁ PT-get)
-    f : Fin n → 𝕊 P
-    f = proj₁ (proj₂ PT-get)
+    n-1 = proj₁ PT-get
+    f𝕊 : SigInd n-1 → 𝕊 P
+    f𝕊 = proj₁ (proj₂ PT-get)
+    f : SigInd n-1 → ℝ
+    f k = proj₁ (f𝕊 k)
 
-    --y k with p : m < n ≡ f (fromℕ m<n)
-    
-
-    y : ℕ → ℝ
-    y m with m ℕP.<? n
-    ... | .Bool.true because ofʸ m<n  = proj₁ (f (fromℕ< m<n))
-    ... | .Bool.false because ofⁿ m≥n = 0ℝ
-
-    {-
-    
-    -}
-
-    z : ℕ → ℝ
-    z m = t m (m ℕP.<? n)
-      where
-        t : (m : ℕ) → Dec (m ℕ.< n) → ℝ
-        t m (.Bool.true because ofʸ m<n)  = proj₁ (f (fromℕ< m<n))
-        t m (.Bool.false because ofⁿ m≥n) = 0ℝ
-
-    zₖ-wellDef : (m : ℕ) → (m<n : m ℕ.< n) → z m ≃ proj₁ (f (fromℕ< m<n))
-    zₖ-wellDef m m<n with m ℕ.<? n
-    ... | .Bool.true because ofʸ p   = {!!}
-    ... | .Bool.false because ofⁿ ¬p = {!!}
+    ≤-same : {m m' : ℕ} → (p p' : m ℕ.≤ m') → p ≡ p'
+    ≤-same {.zero} {_} ℕ.z≤n ℕ.z≤n = refl
+    ≤-same {.suc _} {.suc _} (ℕ.s≤s p) (ℕ.s≤s p') = cong ℕ.s≤s (≤-same p p')
 
     M : ℝ
-    M = max y (ℕ.pred n)
-
-    {-lem : P isBoundedAboveBy (1ℝ + M)
-    lem x∈P = {!!}
-      where
-        x = proj₁ x∈P
-        k<n = proj₁ (proj₂ (proj₂ PT-get) x∈P)
-        k = proj₁ k<n
-        yₖ = proj₁ (proj₁ (proj₂ PT-get) (fromℕ< (proj₂ k<n)))-}
-
-        {-yₖ-wellDef : yₖ ≡ y k
-        yₖ-wellDef with k ℕP.<? n
-        ... | .Bool.true because ofʸ p = {!!}
-        ... | .Bool.false because ofⁿ ¬p = {!!}-}
+    M = maxΣ f
 
 {-
 Choose a₁,...,aₙ∈A such that for each a∈A at least
@@ -735,13 +586,91 @@ Let M = max{a₁,...,aₙ}. Then there is aₖ such that aₖ > M - α. Either x
               a ≤ aᵢ + ∣a - aᵢ∣ < aₖ + α + α < x + 4α = y,
 so y is an upper bound of A. Thus supA exists by Proposition 4.3                                                       □
 -}
-corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → (P hasSupremum)
-corollary-4-4-supremum {P} PT = fast-proposition-4-3-if {!!} {!!} {!!}
-  where
-    
 
-corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
-corollary-4-4-infimum {P} PT = {!!}
+--to RealProperties?
+0<1 : 0ℝ < 1ℝ
+0<1 = pos* (2 , ℚ.*<* (ℤ.+<+ (ℕ.s≤s (ℕ.s≤s ℕ.z≤n))))
+
+isTotallyBounded⇒isNonvoid : {P : Pred ℝ 0ℓ} → P isTotallyBounded → P isNonvoid
+isTotallyBounded⇒isNonvoid {P} PT = (proj₁ (proj₂ (PT 1ℝ 0<1))) (zero , ℕ.z≤n)
+
+corollary-4-4-supremum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasSupremum
+corollary-4-4-supremum {P} PT = fast-proposition-4-3-if (isTotallyBounded⇒isNonvoid PT) (totallyBounded⇒boundedAbove PT) mainPart
+  where
+  mainPart : {x y : ℝ} → x < y → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+  mainPart {x} {y} x<y = [ part1 , part2 ]′ eitheror
+    where
+    α x+2α : ℝ
+    α = ((+ 1 ℚ./ 4) ⋆) * (y - x)
+    x+2α = (x + α + α)
+    α>0 : α > 0ℝ
+    α>0 = posx⇒0<x (posx,y⇒posx*y {(+ 1 ℚ./ 4) ⋆} {y - x} (0<p⇒0<p⋆ (+ 1 ℚ./ 4) tt) (0<x⇒posx (x<y⇒0<y-x x y x<y)))
+
+    pack = PT α (0<x,y⇒0<x*y {(+ 1 ℚ./ 4) ⋆} {y - x} (fast-p<q⇒p⋆<q⋆ 0ℚᵘ (+ 1 ℚ./ 4) (ℚ.*<* (ℤ.+<+ (ℕ.s≤s ℕ.z≤n)))) (x<y⇒0<y-x x y x<y))
+    N-1 N : ℕ
+    N-1 = proj₁ pack
+    N = suc N-1
+    as𝕊 : SigInd N-1 → 𝕊 P
+    as𝕊 = proj₁ (proj₂ pack)
+    as : SigInd N-1 → ℝ
+    as k = proj₁ (as𝕊 k)
+    proofforas : (X : 𝕊 P) → ∃ (λ (k : SigInd N-1) →  ∣ proj₁ X - as k ∣ < α)
+    proofforas = proj₂ (proj₂ pack)
+
+    --here we need the maximum as 𝕊 P
+    ∃n : ∃ (λ n → as n > maxΣ as - α)
+    ∃n = maxΣSelect {N-1} as α α>0
+    n : SigInd N-1
+    n = proj₁ ∃n
+    an : ℝ
+    an = as n
+
+    eitheror : an < x+2α ⊎ an > x
+    eitheror = fast-corollary-2-17 an x x+2α (begin-strict
+              x         <⟨ 0<ε⇒x<x+ε x α>0 ⟩
+              x + α     <⟨ 0<ε⇒x<x+ε (x + α) α>0 ⟩
+              x + α + α ∎)
+      where open ≤-Reasoning
+
+    part1 : an < x+2α → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+    part1 an<x+2α = inj₁ lem
+      where
+      lem : P isBoundedAboveBy y
+      lem sa = <⇒≤ (begin-strict
+          a                          ≈⟨ solve 2 (λ ak a → a ⊜ ak ⊕ (a ⊖ ak)) ≃-refl ak a ⟩
+          ak + (a - ak)              ≤⟨ +-monoʳ-≤ ak (x≤∣x∣ {a - ak}) ⟩
+          ak + ∣ a - ak ∣             <⟨ +-monoʳ-< ak (proj₂ kp) ⟩
+          ak + α                     ≈⟨ solve 2 (λ ak α → ak ⊕ α ⊜ ak ⊖ α ⊕ α ⊕ α) ≃-refl ak α ⟩
+          ak - α + α + α             <⟨ +-monoˡ-< α {ak - α + α} {an + α}
+                                       (+-monoˡ-< α {ak - α} {an} (begin-strict
+                                                                  ak - α           ≤⟨ +-monoˡ-≤ (- α) {ak} (m≤n-1⇒fm≤maxΣf as k) ⟩
+                                                                  maxΣ as - α      <⟨ proj₂ ∃n ⟩
+                                                                  an               ∎)) ⟩
+          an + α + α                 <⟨ +-monoˡ-< α (+-monoˡ-< α an<x+2α) ⟩ 
+          x + α + α + α + α          ≈⟨ solve 2 (λ x y → x ⊕ y ⊕ y ⊕ y ⊕ y ⊜ x ⊕ (y ⊕ y ⊕ y ⊕ y)) ≃-refl x α ⟩
+          x + (α + α + α + α)        ≈⟨ +-congʳ x {α + α + α + α} {(+ 4 / 1) ⋆ * (((+ 1 / 4) ⋆) * (y - x))} (solve 1 (λ w → w ⊕ w ⊕ w ⊕ w ⊜ Κ (+ 4 / 1) ⊗ w) ≃-refl α) ⟩
+          x + (+ 4 / 1) ⋆ * (((+ 1 / 4) ⋆) * (y - x))    ≈⟨ +-congʳ x {(+ 4 / 1) ⋆ * (((+ 1 / 4) ⋆) * (y - x))} {((+ 4 / 1) ⋆ * (+ 1 / 4) ⋆) * (y - x)}
+                                                            (≃-symm (*-assoc ((+ 4 / 1) ⋆) ((+ 1 / 4) ⋆) (y - x))) ⟩
+          x + ((+ 4 / 1) ⋆ * (+ 1 / 4) ⋆) * (y - x)      ≈⟨ +-congʳ x {((+ 4 / 1) ⋆ * (+ 1 / 4) ⋆) * (y - x)} {1ℝ * (y - x)}
+                                                           (*-congʳ {y - x} (≃-trans (≃-symm (⋆-distrib-* (+ 4 / 1) (+ 1 / 4))) (⋆-cong (ℚ.*≡* refl)) )) ⟩
+          x + 1ℝ * (y - x)           ≈⟨ solve 2 (λ x y → x ⊕ (Κ 1ℚᵘ) ⊗ (y ⊖ x) ⊜ y) ≃-refl x y  ⟩
+          y                          ∎)
+        where
+        open ≤-Reasoning
+        a : ℝ
+        a = proj₁ sa
+        kp : ∃ (λ (k : SigInd N-1) → ∣ a - as k ∣ < α)
+        kp = proofforas sa
+        k : SigInd N-1
+        k = proj₁ kp
+        ak : ℝ
+        ak = as k
+    part2 : an > x → (P isBoundedAboveBy y) ⊎ ∃ (λ a → P a × x < a)
+    part2 an>x = inj₂ (an , proj₂ (as𝕊 n) , an>x)
+
+-- Is similarly provable. Or maybe a (-_) ∘ f would shorten it.
+-- corollary-4-4-infimum : {P : Pred ℝ 0ℓ} (PT : P isTotallyBounded) → P hasInfimum
+-- corollary-4-4-infimum {P} PT = ?
 
 {-
 A finite closed interval is compact if it is nonempty.
@@ -767,12 +696,6 @@ x ≃ₛ y = proj₁ x ≃ proj₁ y
   ; isEquivalence = ≃ₛ-isEquivalence P
   }
 
-record CompactInterval : Set where
-  field
-    lower    : ℝ
-    upper    : ℝ
-    nonempty : Interval ⟦ lower , upper ⟧
-
 open import Function.Bundles using (Func)
 
 _⟶_ : Pred ℝ 0ℓ → Pred ℝ 0ℓ → Set
@@ -781,41 +704,118 @@ P ⟶ Q = Func 𝕊[ P ] 𝕊[ Q ]
 _⟶ℝ : Pred ℝ 0ℓ → Set
 P ⟶ℝ = Func 𝕊[ P ] ≃-setoid
 
-testing : {!!}
-testing = (x : ℝ) → let T = x in {!!}
+-- The interval has to be an explicit parameter; otherwise it cannot figure out
+-- from the function what the interval was.
+data continuousOnCI : (D : CompactInterval) (f : D ↓ → ℝ) → Set where
+  contOn* : {D : CompactInterval} {f : D ↓ → ℝ} →
+            (∃ λ (ω : ℝ⁺ → ℝ⁺) → ∀ (ε : ℝ⁺) (x y : D ↓) → ∣ proj₁ x - proj₁ y ∣ ≤ proj₁ (ω ε) → ∣ f x - f y ∣ ≤ proj₁ ε)
+              → continuousOnCI D f
+-- Unfortunately, the syntax becomes a bit inconvenient.
 
 {-
-f : [a , b] → ℝ
-
-f : Func (𝕊[ P ]) ≃-setoid
-      P → ℝ
-
-∣ ⟦ x ⟧ + ⟦ y ⟧ ∣ < ⟦ δ ⟧
-
-
+-- this would also need D as an explicit parameter
+_isContinuousOnCI : {D : CompactInterval} (f : D ↓ → ℝ) → Set
+_isContinuousOnCI {D} f = continuousOnCI D f
 -}
-data _isContinuousAt_ {P : Pred ℝ 0ℓ} (F : P ⟶ℝ) (x : 𝕊 P) : Set where
-  cont* : ((ε : ℝ⁺) → ∃ λ (δ : ℝ⁺) → (y : 𝕊 P) → ∣ {!!} ∣ < (proj₁ δ) → {!!}) → F isContinuousAt x
 
-{-data _isContinuousAt_ {P : Pred ℝ 0ℓ} (F : Func (𝕊[ P ]) ≃-setoid) (xP : 𝕊 P) : Set where
-  cont* : ((ε>0 : ℝ⁺) → ∃ λ (δ>0 : ℝ⁺) → (yP : 𝕊 P) → let ε = proj₁ ε>0; δ = proj₁ δ>0; x = proj₁ xP; y = proj₁ yP; f = Func.f F in
-          {!∣ x - y ∣ < δ → ∣ f x - f y ∣ < ε!}) → F isContinuousAt xP
--}    
-  --cont* : ((ε : ℝ⁺) → ∃ λ (δ : ℝ⁺) → (y : 𝕊 P) → ∣ proj₁ x - proj₁ y ∣ < proj₁ δ → ∣ {!!} ∣ < proj₁ ε) → F isContinuousAt x
+modCon : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (ℝ⁺ → ℝ⁺)
+modCon (contOn* (ω , _)) = ω 
 
-{-
+constIsContinuous : ∀ (c : ℝ) (D : CompactInterval) → continuousOnCI D (λ (x : D ↓) → c)
+constIsContinuous c D = contOn* ((λ ε → 1ℝ , 0<1) , λ ε x y ∣x-y∣≤1 → begin
+    ∣ c - c ∣ ≈⟨ ∣-∣-cong {c - c} {0ℝ} (solve 1 (λ c → c ⊖ c ⊜ Κ 0ℚᵘ) ≃-refl c) ⟩
+    ∣ 0ℝ ∣    ≈⟨ 0≤x⇒∣x∣≃x ≤-refl ⟩
+    0ℝ      ≤⟨ <⇒≤ (proj₂ ε) ⟩
+    proj₁ ε ∎)
+  where open ≤-Reasoning
 
+idIsContinuous : ∀ (D : CompactInterval) → continuousOnCI D (λ (x : D ↓) → proj₁ x)
+idIsContinuous D = contOn* ((λ ε → ε) , λ ε x y ∣x-y∣≤ε → ∣x-y∣≤ε)
 
-A function f : [a,b] → ℝ is continuous if for each ε > 0 there exists ω(ε) > 0 such that
-∣f(x) - f(y)∣ ≤ ε whenever ∣x - y∣ ≤ ω(ε).
+inRangeOf : {A : Set} (f : A → ℝ) → (ℝ → Set)
+inRangeOf f = λ y → ∃ λ x → f x ≃ y
 
+contOnD⇒totallyBounded : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (a<b : CIlower D < CIupper D) →
+    inRangeOf f isTotallyBounded
+contOnD⇒totallyBounded {D} {f} (contOn* (ω , hyp)) a<b 2ε 2ε>0 = n , fas𝕊 , mainPart
+  where
+  ε : ℝ --have to take 2ε because isTotallyBounded expects strict <
+  ε = 2ε * (+ 1 / 2) ⋆
+  ε>0 : ε > 0ℝ
+  ε>0 = 0<x,y⇒0<x*y {2ε} {(+ 1 / 2)⋆} 2ε>0 (posx⇒0<x (0<p⇒0<p⋆ (+ 1 / 2) tt))
+  ε⁺ ωε : ℝ⁺
+  ε⁺ = ε , ε>0
+  ωε = ω ε⁺
+  a b : ℝ
+  a = CIlower D
+  b = CIupper D
+  arch : ∃ (λ n-1 → (+[1+ n-1 ] / 1) ⋆ > (b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)))
+  arch = fast-archimedean-ℝ ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)))
+  n-1 n : ℕ
+  n-1 = proj₁ arch
+  n = suc n-1
 
+  d : ℝ
+  d = (b - a) * (+ 1 / n) ⋆
+  d>0 : d > 0ℝ
+  d>0 = 0<x,y⇒0<x*y {b - a} {(+ 1 / n)⋆} (x<y⇒0<y-x a b a<b) (posx⇒0<x (0<p⇒0<p⋆ (+ 1 / n) tt))
+  asd : SigInd n  → D ↓
+  asd (k , k≤n) = fullPartition D n {tt} {k} k≤n
+  as : SigInd n → ℝ
+  as k = proj₁ (asd k)
+  fas𝕊 : SigInd n → 𝕊 (inRangeOf f)
+  fas𝕊 k = f (asd k) , asd k , ≃-refl
 
+  mainPart : ∀ (y : 𝕊 (inRangeOf f)) → ∃ (λ (i : SigInd n) → ∣ proj₁ y - proj₁ (fas𝕊 i) ∣ < 2ε)
+  mainPart (y , x , fx≃y) = i , (begin-strict
+           ∣ y - proj₁ (fas𝕊 i) ∣        ≈⟨ ∣-∣-cong (+-congˡ (- f (asd i)) {y} {f x} (≃-symm fx≃y)) ⟩
+          ∣ f x - f (asd i) ∣            ≤⟨ hyp ε⁺ x (asd i) (<⇒≤ {∣ proj₁ x - proj₁ (asd i) ∣} {proj₁ (ω ε⁺)} iInRadius) ⟩
+          ε                             <⟨ *-monoʳ-<-pos {2ε} (0<x⇒posx 2ε>0) {(+ 1 / 2)⋆} {1ℝ} (p<q⇒p⋆<q⋆ (+ 1 / 2) 1ℚᵘ (ℚ.*<* (ℤ.+<+ ℕP.≤-refl))) ⟩      -- ε was 2ε * (+ 1 / 2)⋆
+          2ε * 1ℝ                      ≈⟨ *-identityʳ 2ε ⟩
+          2ε                                    ∎)
+    where
+    open ≤-Reasoning
+    {-
+      aᵢ > x
+      a + (i+1) * d > x
+      (i+1) * d > x - a
+      (i+1) > (x - a) / d
+    -}
 
-Why not make a function continuous at a point and then extend that to continuity on subsets of ℝ
-instead of focusing on intervals? We can use intervals for differentiation later on instead.
--}
-data _isContinuousOn_ : Set where
-  --cont* :
-
-
+    --this should rather be solved with fullPartition-[x-aᵢ]<d/n
+    pointNearApp : ∃ λ (i : SigInd n) →
+            ∣ as i - proj₁ x ∣ < ((+ 1 / n)) ⋆ * (b - a)
+    pointNearApp = fullPartition-pointNear D a<b n x
+    i : SigInd n
+    i = proj₁ pointNearApp
+    iInRadius : ∣ proj₁ x - as i ∣ < proj₁ (ω ε⁺)
+    iInRadius = begin-strict
+                ∣ proj₁ x - as i ∣        ≈⟨ ≃-trans (≃-symm (∣-x∣≃∣x∣ {proj₁ x - as i})) (∣-∣-cong { - (proj₁ x - as i)} {as i - proj₁ x}
+                                                                                               (solve 2 (λ t t' → ⊝ (t ⊖ t') ⊜ t' ⊖ t) ≃-refl (proj₁ x) (as i)) ) ⟩
+                ∣ as i - proj₁ x ∣        <⟨ proj₂ pointNearApp ⟩
+                (+ 1 / n)⋆ * (b - a)    ≈⟨ ≃-symm (*-identityʳ ((+ 1 / n)⋆ * (b - a))) ⟩
+                (+ 1 / n)⋆ * (b - a) * 1ℝ ≈⟨ *-congˡ {(+ 1 / n)⋆ * (b - a)} {1ℝ} {(proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)}
+                                               (≃-symm (*-inverseˡ (proj₁ ωε) (inj₂ (proj₂ ωε)))) ⟩
+                (+ 1 / n)⋆ * (b - a) * ((proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) ≈⟨ solve 4 (λ t₁ t₂ t₃ t₄ → (t₁ ⊗ t₂) ⊗ (t₃ ⊗ t₄) ⊜ t₁ ⊗ ((t₂ ⊗ t₃) ⊗ t₄))
+                                                                                           ≃-refl ((+ 1 / n)⋆) (b - a) ((proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))) (proj₁ ωε) ⟩
+                (+ 1 / n)⋆ * ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) <⟨ archApp ⟩
+                (+ 1 / n)⋆ * ((+ n / 1)⋆ * (proj₁ ωε)) ≈⟨ ≃-symm (*-assoc ((+ 1 / n)⋆) ((+ n / 1)⋆) (proj₁ ωε)) ⟩
+                (+ 1 / n)⋆ * (+ n / 1)⋆ * (proj₁ ωε) ≈⟨ *-congʳ {proj₁ ωε} {((+ 1 / n)⋆) * (+ n / 1)⋆} {1ℝ}
+                                                         (≃-trans (≃-symm (⋆-distrib-* (+ 1 / n) (+ n / 1))) (⋆-cong {(+ 1 / n) ℚ.* (+ n / 1)} {1ℚᵘ}
+                                                           (ℚ.*≡* (cong +[1+_] (trans (ℕP.*-identityʳ (n-1 ℕ.+ 0))
+                                                                                (trans (ℕP.+-identityʳ n-1)
+                                                                                (trans (sym (ℕP.*-identityʳ n-1))
+                                                                                       (sym (ℕP.+-identityʳ (n-1 ℕ.* 1)))))))))) ⟩
+                1ℝ * (proj₁ ωε)                     ≈⟨ *-identityˡ (proj₁ ωε) ⟩
+                proj₁ (ωε)             ∎
+      where
+      -- proj₂ arch : (+ n / 1)⋆ > (b-a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))
+      archApp : (+ 1 / n)⋆ * ((b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)) < (+ 1 / n)⋆ * ((+ n / 1)⋆ * (proj₁ ωε))
+      archApp = *-monoʳ-<-pos {(+ 1 / n)⋆} (0<p⇒0<p⋆ (+ 1 / n) tt) {(b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε)) * (proj₁ ωε)} {(+ n / 1)⋆ * (proj₁ ωε)}
+                  (*-monoˡ-<-pos {proj₁ ωε} (0<x⇒posx (proj₂ ωε)) {(b - a) * (proj₁ ωε ⁻¹) (inj₂ (proj₂ ωε))} {(+ n / 1)⋆}
+                    (proj₂ arch))
+      
+    
+weakWeierstrass-sup : {D : CompactInterval} {f : D ↓ → ℝ} → continuousOnCI D f → (a<b : CIlower D < CIupper D) →
+    inRangeOf f hasSupremum
+weakWeierstrass-sup {D} {f} fcont a<b = corollary-4-4-supremum (contOnD⇒totallyBounded {D} {f} fcont a<b)
